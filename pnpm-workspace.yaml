@@ -2,3 +2,12 @@ packages:
   - 'apps/*'
   - 'packages/*'
   - 'services/*'
+
+# pnpm 11: explicit build script allowlist (replaces onlyBuiltDependencies)
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  esbuild: true
+  msgpackr-extract: true
+  prisma: true
+  sharp: true
