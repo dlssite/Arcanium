@@ -1,0 +1,249 @@
+---
+// Navbar.astro
+const webAppUrl = import.meta.env.PUBLIC_WEB_APP_URL ?? 'http://localhost:3000';
+const discordUrl = import.meta.env.PUBLIC_DISCORD_URL ?? 'https://discord.gg/arcanium';
+---
+
+<header class="sticky top-0 z-50 w-full glass-header transition-colors duration-200">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-20">
+      
+      <!-- Brand Logo & Wordmark -->
+      <a href="#" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-xl overflow-hidden shadow-md shadow-arcanium-purple/20 border border-arcanium-amber/30 group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
+          <img src="/assets/arcanium.png" alt="Arcanium logo" class="w-full h-full object-cover" />
+        </div>
+        <div class="flex flex-col">
+          <span class="font-heading font-bold text-2xl tracking-wide text-arcanium-plum dark:text-arcanium-dark-text group-hover:text-arcanium-purple dark:group-hover:text-arcanium-purple-light transition-colors">
+            Arcanium
+          </span>
+          <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-arcanium-muted dark:text-arcanium-dark-muted -mt-1">
+            The Living Archive
+          </span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+        <a 
+          href="#features" 
+          class="px-3.5 py-2 rounded-lg text-sm font-medium text-arcanium-text/80 dark:text-arcanium-dark-text/80 hover:text-arcanium-plum dark:hover:text-white hover:bg-arcanium-cream/70 dark:hover:bg-arcanium-dark-card transition-all"
+        >
+          Features
+        </a>
+        <a 
+          href="#liber" 
+          class="px-3.5 py-2 rounded-lg text-sm font-medium text-arcanium-text/80 dark:text-arcanium-dark-text/80 hover:text-arcanium-plum dark:hover:text-white hover:bg-arcanium-cream/70 dark:hover:bg-arcanium-dark-card transition-all flex items-center gap-1.5"
+        >
+          <span>Liber AI</span>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-arcanium-amber-light dark:bg-amber-950/40 text-arcanium-amber border border-arcanium-amber/20">
+            Mascot
+          </span>
+        </a>
+        <a 
+          href="#showcase" 
+          class="px-3.5 py-2 rounded-lg text-sm font-medium text-arcanium-text/80 dark:text-arcanium-dark-text/80 hover:text-arcanium-plum dark:hover:text-white hover:bg-arcanium-cream/70 dark:hover:bg-arcanium-dark-card transition-all"
+        >
+          Interface
+        </a>
+        <a 
+          href="#creators" 
+          class="px-3.5 py-2 rounded-lg text-sm font-medium text-arcanium-text/80 dark:text-arcanium-dark-text/80 hover:text-arcanium-plum dark:hover:text-white hover:bg-arcanium-cream/70 dark:hover:bg-arcanium-dark-card transition-all"
+        >
+          For Writers
+        </a>
+        <a 
+          href="#community" 
+          class="px-3.5 py-2 rounded-lg text-sm font-medium text-arcanium-text/80 dark:text-arcanium-dark-text/80 hover:text-arcanium-plum dark:hover:text-white hover:bg-arcanium-cream/70 dark:hover:bg-arcanium-dark-card transition-all"
+        >
+          Community
+        </a>
+      </nav>
+
+      <!-- Desktop CTA Actions & Theme Toggle -->
+      <div class="hidden md:flex items-center gap-3">
+        
+        <!-- Theme Toggle Button -->
+        <button 
+          id="theme-toggle-btn"
+          type="button"
+          aria-label="Toggle light/dark theme"
+          title="Toggle Light/Dark Theme"
+          class="w-10 h-10 rounded-xl bg-white dark:bg-arcanium-dark-card border border-arcanium-border dark:border-arcanium-dark-border shadow-xs flex items-center justify-center text-arcanium-plum dark:text-amber-300 hover:bg-arcanium-cream dark:hover:bg-arcanium-dark-surface active:scale-95 transition-all"
+        >
+          <!-- Sun icon (shown in dark mode) -->
+          <svg class="theme-icon-sun w-5 h-5 hidden dark:block text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+          </svg>
+          <!-- Moon icon (shown in light mode) -->
+          <svg class="theme-icon-moon w-5 h-5 block dark:hidden text-arcanium-plum" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+        </button>
+
+        <!-- Discord Link -->
+        <a 
+          href={discordUrl} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="p-2.5 text-arcanium-muted dark:text-arcanium-dark-muted hover:text-arcanium-purple dark:hover:text-arcanium-purple-light hover:bg-arcanium-cream/80 dark:hover:bg-arcanium-dark-card rounded-xl transition-all"
+          title="Join Discord"
+        >
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+          </svg>
+        </a>
+
+        <!-- Primary CTA -->
+        <a 
+          href={webAppUrl} 
+          class="btn-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm text-white"
+        >
+          <span>Launch Web App</span>
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Mobile Menu Button & Mobile Theme Toggle -->
+      <div class="flex items-center gap-2 md:hidden">
+        <button 
+          id="mobile-theme-toggle-btn"
+          type="button"
+          aria-label="Toggle light/dark theme"
+          class="p-2 rounded-lg text-arcanium-plum dark:text-amber-300 hover:bg-arcanium-cream dark:hover:bg-arcanium-dark-card transition-colors"
+        >
+          <svg class="theme-icon-sun w-5 h-5 hidden dark:block text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+          </svg>
+          <svg class="theme-icon-moon w-5 h-5 block dark:hidden text-arcanium-plum" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+        </button>
+
+        <a 
+          href={webAppUrl} 
+          class="btn-primary px-3 py-1.5 rounded-lg text-xs font-semibold"
+        >
+          Launch
+        </a>
+
+        <button 
+          id="mobile-menu-btn"
+          type="button" 
+          class="p-2.5 rounded-xl text-arcanium-plum dark:text-arcanium-dark-text hover:bg-arcanium-cream dark:hover:bg-arcanium-dark-card transition-colors"
+          aria-label="Toggle Navigation Menu"
+        >
+          <svg id="hamburger-icon" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <svg id="close-icon" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mobile Drawer -->
+  <div id="mobile-menu" class="hidden md:hidden border-t border-arcanium-border dark:border-arcanium-dark-border bg-[#FAF8F5]/95 dark:bg-[#120E18]/95 backdrop-blur-xl px-4 pt-3 pb-6 space-y-2 shadow-xl">
+    <a 
+      href="#features" 
+      class="mobile-nav-link block px-4 py-2.5 rounded-lg text-base font-medium text-arcanium-text dark:text-arcanium-dark-text hover:bg-arcanium-cream dark:hover:bg-arcanium-dark-card"
+    >
+      Features
+    </a>
+    <a 
+      href="#liber" 
+      class="mobile-nav-link flex items-center justify-between px-4 py-2.5 rounded-lg text-base font-medium text-arcanium-text dark:text-arcanium-dark-text hover:bg-arcanium-cream dark:hover:bg-arcanium-dark-card"
+    >
+      <span>Liber AI Companion</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-arcanium-amber-light dark:bg-amber-950/40 text-arcanium-amber">
+        Mascot
+      </span>
+    </a>
+    <a 
+      href="#showcase" 
+      class="mobile-nav-link block px-4 py-2.5 rounded-lg text-base font-medium text-arcanium-text dark:text-arcanium-dark-text hover:bg-arcanium-cream dark:hover:bg-arcanium-dark-card"
+    >
+      Interface Showcase
+    </a>
+    <a 
+      href="#creators" 
+      class="mobile-nav-link block px-4 py-2.5 rounded-lg text-base font-medium text-arcanium-text dark:text-arcanium-dark-text hover:bg-arcanium-cream dark:hover:bg-arcanium-dark-card"
+    >
+      For Writers & Creators
+    </a>
+    <a 
+      href="#community" 
+      class="mobile-nav-link block px-4 py-2.5 rounded-lg text-base font-medium text-arcanium-text dark:text-arcanium-dark-text hover:bg-arcanium-cream dark:hover:bg-arcanium-dark-card"
+    >
+      Community & Discord
+    </a>
+    <div class="pt-4 border-t border-arcanium-border/60 dark:border-arcanium-dark-border/60 flex flex-col gap-2.5">
+      <a 
+        href={webAppUrl} 
+        class="btn-primary w-full py-3 rounded-xl font-medium text-sm text-center flex items-center justify-center gap-2"
+      >
+        <span>Open Arcanium Web App</span>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+      <a 
+        href={discordUrl} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        class="btn-secondary w-full py-2.5 rounded-xl font-medium text-sm text-center flex items-center justify-center gap-2"
+      >
+        <span>Join Discord Community</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<script>
+  function setupThemeToggle() {
+    const desktopBtn = document.getElementById('theme-toggle-btn');
+    const mobileBtn = document.getElementById('mobile-theme-toggle-btn');
+
+    function toggle() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('arcanium-theme', isDark ? 'dark' : 'light');
+    }
+
+    desktopBtn?.addEventListener('click', toggle);
+    mobileBtn?.addEventListener('click', toggle);
+  }
+
+  function setupMobileMenu() {
+    const btn = document.getElementById('mobile-menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    const hamburger = document.getElementById('hamburger-icon');
+    const close = document.getElementById('close-icon');
+    const links = document.querySelectorAll('.mobile-nav-link');
+
+    if (btn && menu && hamburger && close) {
+      btn.addEventListener('click', () => {
+        const isExpanded = menu.classList.toggle('hidden');
+        hamburger.classList.toggle('hidden', !isExpanded);
+        close.classList.toggle('hidden', isExpanded);
+      });
+
+      links.forEach(link => {
+        link.addEventListener('click', () => {
+          menu.classList.add('hidden');
+          hamburger.classList.remove('hidden');
+          close.classList.add('hidden');
+        });
+      });
+    }
+  }
+
+  setupThemeToggle();
+  setupMobileMenu();
+</script>

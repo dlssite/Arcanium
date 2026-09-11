@@ -1,0 +1,25 @@
+{
+  "name": "@arcanium/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "dev": "tsc --noEmit --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@arcanium/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4"
+  }
+}

@@ -1,0 +1,613 @@
+// services/backend/prisma/schema.prisma
+// Single source of truth for the database schema.
+// All changes via: pnpm --filter @arcanium/backend db:migrate
+// Direct DB edits are forbidden (Constitution §5.3).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl is required by Supabase when using the transaction pooler (port 6543)
+  // for connection-heavy operations like migrations.
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------------------------
+
+enum ContentType {
+  WEB_NOVEL
+  LIGHT_NOVEL
+  COMIC
+  MANGA
+  EBOOK
+  WEBTOON
+}
+
+enum ContentStatus {
+  ONGOING
+  COMPLETED
+  HIATUS
+  CANCELLED
+  UNKNOWN
+}
+
+enum ContentSource {
+  SCRAPED
+  CREATOR_UPLOAD
+  ADMIN_UPLOAD
+}
+
+enum ReadingStatus {
+  READING
+  COMPLETED
+  ON_HOLD
+  DROPPED
+  PLAN_TO_READ
+}
+
+enum AuthProvider {
+  GOOGLE
+  EMAIL
+}
+
+enum UserRole {
+  USER
+  VERIFIED_WRITER
+  MODERATOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+// ---------------------------------------------------------------------------
+// USER
+// ---------------------------------------------------------------------------
+
+model User {
+  id          String     @id @default(cuid())
+  email       String     @unique
+  displayName String
+  avatarUrl   String?
+  role        UserRole   @default(USER)
+  status      UserStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  authAccounts      AuthAccount[]
+  shelves           Shelf[]
+  readingProgress   ReadingProgress[]
+  aiMemory          AiMemory?
+  aiMoodEntries     AiMoodEntry[]
+  aiActionLogs      AiActionLog[]
+  badgeAwards       UserBadgeAward[]
+  circleMemberships CircleMember[]      @relation("CircleMemberships")
+  marginaliaPosts   MarginaliaPost[]    @relation("MarginaliaPost")
+  createdContent    Content[]           @relation("CreatorContent")
+  creatorApplications CreatorApplication[] @relation("CreatorApplications")
+  moderatedContent  ModeratedContent[]  @relation("ModeratedAuthor")
+
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// AUTH ACCOUNTS
+// Separates auth provider data from the core User identity.
+// A single User can sign in via Google AND email/password.
+// ---------------------------------------------------------------------------
+
+model AuthAccount {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   AuthProvider
+  // For GOOGLE: the Google `sub` claim. For EMAIL: null.
+  providerId String?      @unique
+  // For EMAIL: bcrypt hash. For GOOGLE: null.
+  password   String?
+  createdAt  DateTime     @default(now())
+
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// CONTENT CATALOGUE
+// ---------------------------------------------------------------------------
+
+model Content {
+  id            String        @id @default(cuid())
+  type          ContentType
+  status        ContentStatus @default(UNKNOWN)
+  source        ContentSource @default(SCRAPED)
+  title         String
+  slug          String        @unique
+  author        String?
+  artist        String?
+  synopsis      String?
+  coverImageUrl String?
+  language      String        @default("en")
+  sourceUrl     String?
+  sourceSite    String?
+  metadata      Json          @default("{}")
+  chapterCount  Int           @default(0)
+  rating        Float?
+  /// For CREATOR_UPLOAD content — the User who created it. Null for scraped.
+  creatorId     String?
+  creator       User?         @relation("CreatorContent", fields: [creatorId], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  chapters        Chapter[]
+  shelfEntries    ShelfEntry[]
+  readingProgress ReadingProgress[]
+  moderatedContent ModeratedContent[] @relation("ModeratedContent")
+  featuredIn      FeaturedSection[]
+  collectionEntries CollectionEntry[]
+
+  @@index([type])
+  @@index([source])
+  @@index([creatorId])
+  @@index([sourceSite, sourceUrl])
+  @@index([slug])
+}
+
+// ---------------------------------------------------------------------------
+// CHAPTER
+// ---------------------------------------------------------------------------
+
+model Chapter {
+  id          String    @id @default(cuid())
+  contentId   String
+  content     Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  number      Float
+  title       String?
+  /// Full HTML/text body. Null for scraped chapters not yet fetched.
+  /// For MANGA/COMIC/WEBTOON: JSON array of image URLs stored as text.
+  bodyText    String?   @db.Text
+  wordCount   Int       @default(0)
+  /// false = draft (creator-only), true = visible to readers
+  isPublished Boolean   @default(true)
+  isDraft     Boolean   @default(false)
+  /// External URL — null for creator-uploaded chapters
+  sourceUrl   String?
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([contentId, number])
+  @@index([contentId])
+  @@index([contentId, isPublished])
+}
+
+// ---------------------------------------------------------------------------
+// LIBRARY — SHELVES
+// ---------------------------------------------------------------------------
+
+model Shelf {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isDefault   Boolean  @default(false)
+  isPublic    Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entries ShelfEntry[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model ShelfEntry {
+  id        String   @id @default(cuid())
+  shelfId   String
+  shelf     Shelf    @relation(fields: [shelfId], references: [id], onDelete: Cascade)
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  addedAt   DateTime @default(now())
+  sortOrder Int      @default(0)
+  note      String?
+
+  @@unique([shelfId, contentId])
+  @@index([shelfId])
+  @@index([contentId])
+}
+
+// ---------------------------------------------------------------------------
+// READING PROGRESS
+// ---------------------------------------------------------------------------
+
+model ReadingProgress {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentId       String
+  content         Content       @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  status          ReadingStatus @default(PLAN_TO_READ)
+  lastChapterRead Float?
+  lastReadAt      DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  scrollPosition  Float?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([userId, contentId])
+  @@index([userId, status])
+  @@index([contentId])
+}
+
+// ---------------------------------------------------------------------------
+// AI MEMORY
+// ---------------------------------------------------------------------------
+
+model AiMemory {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferenceSummary String?
+  preferences       Json    @default("{}")
+  lastContext       Json    @default("{}")
+  updatedAt         DateTime @updatedAt
+}
+
+model AiMoodEntry {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mood            String
+  rawInput        String?
+  recommendations Json     @default("[]")
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model AiActionLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toolName   String
+  inputArgs  Json
+  result     Json
+  durationMs Int?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([toolName])
+}
+
+// ---------------------------------------------------------------------------
+// COMMUNITY
+// ---------------------------------------------------------------------------
+
+model ReadingCircle {
+  id          String   @id @default(cuid())
+  name        String
+  tag         String
+  focusTitle  String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     CircleMember[]
+  sessions    CircleSession[]
+
+  @@index([isPublic])
+}
+
+model CircleMember {
+  id        String        @id @default(cuid())
+  circleId  String
+  circle    ReadingCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation("CircleMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime      @default(now())
+
+  @@unique([circleId, userId])
+  @@index([circleId])
+  @@index([userId])
+}
+
+/// A live session snapshot — updated periodically, not a full audit log
+model CircleSession {
+  id        String        @id @default(cuid())
+  circleId  String
+  circle    ReadingCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  activeNow Int           @default(0)
+  updatedAt DateTime      @updatedAt
+
+  @@unique([circleId])
+}
+
+model MarginaliaPost {
+  id         String   @id @default(cuid())
+  authorId   String
+  author     User     @relation("MarginaliaPost", fields: [authorId], references: [id], onDelete: Cascade)
+  bookTitle  String
+  chapter    String?
+  quote      String
+  reflection String
+  echoCount  Int      @default(0)
+  replyCount Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model CommunityChallenge {
+  id               String   @id @default(cuid())
+  title            String
+  description      String
+  targetPages      Int
+  completedPages   Int      @default(0)
+  badgeReward      String
+  totalScholars    Int      @default(0)
+  startsAt         DateTime
+  endsAt           DateTime
+  createdAt        DateTime @default(now())
+
+  @@index([endsAt])
+}
+
+// ---------------------------------------------------------------------------
+// CREATOR APPLICATIONS
+// ---------------------------------------------------------------------------
+
+enum CreatorApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model CreatorApplication {
+  id             String                   @id @default(cuid())
+  userId         String
+  user           User                     @relation("CreatorApplications", fields: [userId], references: [id], onDelete: Cascade)
+  applicantName  String
+  penName        String
+  email          String
+  portfolioUrl   String?
+  sampleTitle    String
+  sampleSynopsis String                   @db.Text
+  pitch          String                   @db.Text
+  primaryGenre   String
+  status         CreatorApplicationStatus @default(PENDING)
+  submittedAt    DateTime                 @default(now())
+  reviewedAt     DateTime?
+  reviewedById   String?
+
+  @@index([status])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// CONTENT MODERATION
+// ---------------------------------------------------------------------------
+
+enum ModerationStatus {
+  FLAGGED
+  APPROVED
+  QUARANTINED
+}
+
+model ModeratedContent {
+  id           String           @id @default(cuid())
+  contentId    String
+  content      Content          @relation("ModeratedContent", fields: [contentId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User             @relation("ModeratedAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  flagReason   String
+  riskScore    Float            @default(0)
+  status       ModerationStatus @default(FLAGGED)
+  reportedAt   DateTime         @default(now())
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  @@index([status])
+  @@index([contentId])
+}
+
+// ---------------------------------------------------------------------------
+// FEATURE FLAGS
+// ---------------------------------------------------------------------------
+
+enum FeatureFlagCategory {
+  AI_LIBER
+  CREATOR_ECONOMY
+  CORE_READER
+  SYSTEM
+}
+
+model FeatureFlag {
+  key         String              @id
+  name        String
+  description String
+  category    FeatureFlagCategory @default(SYSTEM)
+  enabled     Boolean             @default(false)
+  rolloutPct  Int                 @default(0)
+  updatedById String?
+  updatedAt   DateTime            @updatedAt
+
+  @@index([category])
+}
+
+// ---------------------------------------------------------------------------
+// SCRAPER CONFIG
+// ---------------------------------------------------------------------------
+
+enum ScraperStatus {
+  OPERATIONAL
+  DEGRADED
+  FAILED
+}
+
+enum SelectorType {
+  CHEERIO
+  REST
+  READABILITY
+}
+
+model ScraperConfig {
+  id                  String         @id @default(cuid())
+  name                String
+  targetDomain        String         @unique
+  selectorType        SelectorType
+  enabled             Boolean        @default(true)
+  requestDelayMs      Int            @default(1000)
+  lastRunAt           DateTime?
+  lastRunStatus       ScraperStatus?
+  totalCrawledAllTime Int            @default(0)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([enabled])
+}
+
+// ---------------------------------------------------------------------------
+// CONTENT TAXONOMY
+// Admin-managed genre/category labels surfaced to the web app as filter chips.
+// The `genre` field is the exact string used in Content.metadata.genres[] so
+// the public /api/v1/content?genre= filter works without any mapping layer.
+// ---------------------------------------------------------------------------
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique          // display label, e.g. "Dark Fantasy"
+  genre     String   @unique          // exact value matched in metadata.genres[]
+  sortOrder Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled, sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// APP CONFIG
+// Generic key-value store for runtime-editable application settings.
+// Used for AI model selection, rate limits, etc.
+// ---------------------------------------------------------------------------
+
+model AppConfig {
+  key       String   @id            // e.g. "ai_model"
+  value     String                  // e.g. "google/gemini-flash-1.5"
+  updatedAt DateTime @updatedAt
+  updatedBy String?                 // admin user id who last changed it
+}
+
+// ---------------------------------------------------------------------------
+// BADGE / HONOR SYSTEM
+// Badge       — catalog of badge definitions managed by admins
+// UserBadgeAward — explicit admin award for a specific user (overrides computed)
+// ---------------------------------------------------------------------------
+
+model Badge {
+  id           String   @id @default(cuid())
+  key          String   @unique             // stable id, e.g. "night_owl"
+  title        String
+  description  String
+  iconName     String                       // lucide icon name, e.g. "Moon"
+  colorClasses String                       // tailwind classes for color
+  tier         String   @default("Bronze Talisman")
+  // If criteria is set, it's a display-only hint for auto-unlock logic
+  criteria     String?
+  // Manual-only badges can only be awarded by admins, never auto-unlocked
+  manualOnly   Boolean  @default(false)
+  enabled      Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  awards       UserBadgeAward[]
+
+  @@index([enabled, sortOrder])
+}
+
+model UserBadgeAward {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId     String
+  badge       Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  awardedBy   String?                      // admin user id
+  note        String?                      // optional reason
+  awardedAt   DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+}
+
+// ---------------------------------------------------------------------------
+// FEATURED CONTENT CURATION
+// Admin pins specific content items to named slots (sections).
+// key examples: "home_featured", "explore_spotlight"
+// Multiple items per section — sortOrder controls display order.
+// ---------------------------------------------------------------------------
+
+model FeaturedSection {
+  id        String   @id @default(cuid())
+  key       String                        // section identifier, e.g. "home_featured"
+  label     String                        // display label, e.g. "Featured for You"
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  sortOrder Int      @default(0)
+  enabled   Boolean  @default(true)
+  pinnedBy  String?                       // admin user id
+  pinnedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, contentId])
+  @@index([key, enabled, sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// SPECIAL COLLECTIONS
+// Admin-curated named collections of books (e.g. "Grimoires & Spells").
+// Shown in the web app sidebar and as dedicated collection pages.
+// ---------------------------------------------------------------------------
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique           // URL-safe identifier
+  description String   @default("")
+  coverColor  String   @default("bg-purple-400") // Tailwind color class for sidebar dot
+  enabled     Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdBy   String?                    // admin user id
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entries     CollectionEntry[]
+
+  @@index([enabled, sortOrder])
+}
+
+model CollectionEntry {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  contentId    String
+  content      Content    @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  sortOrder    Int        @default(0)
+  addedAt      DateTime   @default(now())
+
+  @@unique([collectionId, contentId])
+  @@index([collectionId, sortOrder])
+}

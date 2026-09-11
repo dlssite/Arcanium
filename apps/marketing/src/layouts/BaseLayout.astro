@@ -1,0 +1,86 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+}
+
+const {
+  title = "Arcanium — The Living Archive | Your Portal to Infinite Stories",
+  description = "The all-in-one reader app powered by an AI companion. Unify your web novels, comics, light novels, and ebooks in a single, distraction-free sanctuary.",
+  ogImage = "/assets/liber_hero.jpg",
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site || import.meta.env.PUBLIC_SITE_URL || 'https://arcanium.app');
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalURL} />
+    
+    <!-- Primary Meta Tags -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Theme initialization script to prevent FOUC -->
+    <script is:inline>
+      (function() {
+        const storedTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('arcanium-theme') : null;
+        if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(ogImage, canonicalURL)} />
+    <meta property="og:site_name" content="Arcanium" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(ogImage, canonicalURL)} />
+    <meta name="twitter:creator" content="@ArcaniumArchive" />
+
+    <!-- Preconnect to Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- JSON-LD Structured Data for Search Engines -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Arcanium — The Living Archive",
+        "operatingSystem": "Web, iOS, Android, Desktop",
+        "applicationCategory": "BooksAndReferenceApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Unified reader application and digital library powered by Liber, the intelligent agentic AI archivist.",
+        "url": "https://arcanium.app"
+      }
+    </script>
+  </head>
+  <body class="bg-[#FAF8F5] dark:bg-[#120E18] text-arcanium-text dark:text-arcanium-dark-text font-sans antialiased selection:bg-arcanium-purple selection:text-white flex flex-col min-h-screen transition-colors duration-200">
+    <slot />
+  </body>
+</html>

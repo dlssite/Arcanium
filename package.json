@@ -1,0 +1,14 @@
+{
+  "name": "arcanium-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,web -c cyan,magenta \"pnpm --filter @arcanium/backend dev\" \"pnpm --filter @arcanium/web dev\"",
+    "build": "pnpm --filter @arcanium/types build && pnpm --filter @arcanium/api-client build && pnpm --filter @arcanium/backend build && pnpm --filter @arcanium/web build",
+    "typecheck": "pnpm -r typecheck",
+    "preview": "pnpm --filter @arcanium/web preview"
+  },
+  "devDependencies": {
+    "concurrently": "9.0.1"
+  }
+}

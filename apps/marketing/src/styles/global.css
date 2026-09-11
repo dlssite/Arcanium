@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: #FAF8F5;
+    --color-cream: #F4EFEB;
+    --color-plum: #433258;
+    --color-purple: #5D497D;
+    --color-amber: #DE9B35;
+    --color-text: #2D253A;
+    --color-border: #EBE6DE;
+  }
+
+  html.dark {
+    --color-bg: #120E18;
+    --color-cream: #1A1423;
+    --color-plum: #F1ECF7;
+    --color-purple: #9F8AC2;
+    --color-amber: #F3B556;
+    --color-text: #F1ECF7;
+    --color-border: #312740;
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  body {
+    overflow-x: hidden;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  ::selection {
+    background-color: #5D497D;
+    color: #FAF8F5;
+  }
+}
+
+@layer components {
+  .font-heading {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  .font-body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+
+  .glass-header {
+    background-color: rgba(250, 248, 245, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(235, 230, 222, 0.85);
+  }
+
+  .dark .glass-header {
+    background-color: rgba(18, 14, 24, 0.9);
+    border-bottom: 1px solid rgba(49, 39, 64, 0.85);
+  }
+
+  .glass-card {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(235, 230, 222, 0.9);
+  }
+
+  .dark .glass-card {
+    background-color: rgba(32, 25, 44, 0.85);
+    border: 1px solid rgba(49, 39, 64, 0.9);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #5D497D 0%, #433258 100%);
+    color: #FFFFFF;
+    box-shadow: 0 4px 16px -2px rgba(67, 50, 88, 0.28);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dark .btn-primary {
+    background: linear-gradient(135deg, #7D67A3 0%, #523F71 100%);
+    box-shadow: 0 4px 20px -2px rgba(125, 103, 163, 0.4);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px -2px rgba(67, 50, 88, 0.38);
+    filter: brightness(1.06);
+  }
+
+  .btn-primary:active {
+    transform: translateY(1px);
+  }
+
+  .btn-secondary {
+    background-color: #FFFFFF;
+    color: #433258;
+    border: 1px solid #E5DFD5;
+    box-shadow: 0 2px 8px rgba(67, 50, 88, 0.04);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dark .btn-secondary {
+    background-color: #20192C;
+    color: #F1ECF7;
+    border-color: #312740;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn-secondary:hover {
+    background-color: #F8F5F0;
+    border-color: #D6CEC2;
+    transform: translateY(-1px);
+    color: #312344;
+  }
+
+  .dark .btn-secondary:hover {
+    background-color: #2A213A;
+    border-color: #45375B;
+    color: #FFFFFF;
+  }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #120E18;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D9D2C6;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #382C4A;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B8AF9F;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #503E6A;
+}

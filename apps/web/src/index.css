@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #EDE8E1;
+    color: #2D253A;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .dark body {
+    background-color: #0A080F;
+    color: #F1ECF7;
+  }
+}
+
+/* Hide scrollbars for native feel while keeping scrolling functional */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area padding utilities */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+
+.pt-safe {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+}
+
+/* Micro-animations */
+@keyframes softPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes fireflyFloat {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-8px) translateX(4px);
+    opacity: 0.9;
+  }
+}
+
+.animate-soft-pulse {
+  animation: softPulse 3s ease-in-out infinite;
+}
+
+.animate-firefly-1 {
+  animation: fireflyFloat 4s ease-in-out infinite;
+}
+
+.animate-firefly-2 {
+  animation: fireflyFloat 5s ease-in-out infinite 1.5s;
+}
+
+.animate-firefly-3 {
+  animation: fireflyFloat 3.5s ease-in-out infinite 0.7s;
+}
+
+/* ---------------------------------------------------------------------------
+ * Reader Typography Engine
+ * Scoped styles for prose rendering across all reader themes and screen sizes
+ * ------------------------------------------------------------------------- */
+
+.reader-content-area {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.reader-prose {
+  user-select: text;
+  -webkit-user-select: text;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.reader-prose p {
+  margin-top: 0;
+  margin-bottom: 1.35em;
+  letter-spacing: 0.01em;
+}
+
+.reader-prose h1,
+.reader-prose h2,
+.reader-prose h3,
+.reader-prose h4 {
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 2em;
+  margin-bottom: 0.8em;
+  letter-spacing: -0.015em;
+}
+
+.reader-prose h1 {
+  font-size: 1.75em;
+}
+
+.reader-prose h2 {
+  font-size: 1.45em;
+}
+
+.reader-prose h3 {
+  font-size: 1.25em;
+}
+
+.reader-prose h4 {
+  font-size: 1.1em;
+}
+
+.reader-prose blockquote {
+  border-left: 3px solid currentColor;
+  opacity: 0.88;
+  margin: 1.5em 0;
+  padding: 0.5em 0 0.5em 1.25em;
+  font-style: italic;
+}
+
+.reader-prose hr {
+  margin: 2.5em auto;
+  border: 0;
+  border-top: 1px solid currentColor;
+  opacity: 0.2;
+  width: 60%;
+}
+
+.reader-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1.5em auto;
+  display: block;
+}
+
+.reader-prose ul {
+  list-style-type: disc;
+  padding-left: 1.75em;
+  margin: 1.25em 0;
+}
+
+.reader-prose ol {
+  list-style-type: decimal;
+  padding-left: 1.75em;
+  margin: 1.25em 0;
+}
+
+.reader-prose li {
+  margin-bottom: 0.5em;
+}
+
+.reader-prose a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.reader-text-justify {
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+.reader-text-left {
+  text-align: left;
+}
