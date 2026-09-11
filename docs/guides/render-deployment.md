@@ -27,7 +27,7 @@ The backend is an Express + Prisma app compiled to CommonJS. It needs PostgreSQL
 | **Region** | Closest to your users |
 | **Branch** | `main` (or your production branch) |
 | **Runtime** | `Node` |
-| **Build Command** | `npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @arcanium/backend build` |
+| **Build Command** | `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @arcanium/backend build` |
 | **Start Command** | `node services/backend/dist/index.js` |
 | **Instance Type** | Starter ($7/mo) minimum — free tier sleeps after 15 min inactivity |
 
@@ -127,7 +127,7 @@ services:
     region: oregon
     plan: starter
     rootDir: .
-    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @arcanium/backend build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @arcanium/backend build
     startCommand: node services/backend/dist/index.js
     healthCheckPath: /api/v1/health
     preDeployCommand: node services/backend/node_modules/.bin/prisma migrate deploy --schema=services/backend/prisma/schema.prisma
