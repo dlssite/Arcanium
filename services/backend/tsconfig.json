@@ -4,6 +4,7 @@
     "target": "ES2022",
     "module": "CommonJS",
     "moduleResolution": "node",
+    "rootDir": "src",
     "outDir": "dist",
     "lib": ["ES2022"],
     "baseUrl": ".",
@@ -12,6 +13,6 @@
       "@arcanium/types/*": ["../../packages/types/src/*"]
     }
   },
-  "include": ["src/**/*", "../../packages/types/src/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
