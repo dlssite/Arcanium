@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import { type Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { env } from '../lib/env.js';
 
@@ -221,9 +222,10 @@ export async function getUsers(req: Request, res: Response): Promise<void> {
     prisma.user.count({ where }),
   ]);
 
+  type AdminUser = (typeof users)[number];
   res.json({
     data: {
-      users: users.map((u) => {
+      users: users.map((u: AdminUser) => {
         const stats = computeReadingStats(u.readingProgress);
         return serializeAdminUser({ ...u, ...stats });
       }),
@@ -576,9 +578,10 @@ export async function getCreatorApplications(req: Request, res: Response): Promi
     prisma.creatorApplication.count({ where }),
   ]);
 
+  type CreatorApp = (typeof applications)[number];
   res.json({
     data: {
-      applications: applications.map((a) => ({
+      applications: applications.map((a: CreatorApp) => ({
         id:             a.id,
         userId:         a.userId,
         applicantName:  a.applicantName,
@@ -772,9 +775,10 @@ export async function getModerationStories(req: Request, res: Response): Promise
     prisma.moderatedContent.count({ where }),
   ]);
 
+  type ModStory = (typeof stories)[number];
   res.json({
     data: {
-      stories: stories.map((s) => ({
+      stories: stories.map((s: ModStory) => ({
         id:             s.id,
         title:          s.content.title,
         authorName:     s.author.displayName,
@@ -833,7 +837,7 @@ export async function updateModerationStoryStatus(req: Request, res: Response): 
   // QUARANTINED → set Content.status = 'CANCELLED' (hides from public catalogue & reader)
   // APPROVED    → restore Content.status = 'ONGOING' if it was previously quarantine-cancelled
   // FLAGGED     → no change to Content.status (still visible while under review)
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.moderatedContent.update({
       where: { id },
       data:  { status: newStatus as never, reviewedAt: new Date(), reviewedById: req.user.id },
@@ -921,11 +925,11 @@ export async function getAdminStats(req: Request, res: Response): Promise<void> 
     prisma.aiActionLog.groupBy({
       by: ['userId'],
       where: { createdAt: { gte: today } },
-    }).then((rows) => rows.length),
+    }).then((rows: unknown[]) => rows.length),
     prisma.aiActionLog.groupBy({
       by: ['userId'],
       where: { createdAt: { gte: yesterday, lt: today } },
-    }).then((rows) => rows.length),
+    }).then((rows: unknown[]) => rows.length),
   ]);
 
   const pctChange = (current: number, previous: number): number =>
@@ -1083,12 +1087,13 @@ export async function getAiAnalytics(req: Request, res: Response): Promise<void>
     prisma.aiActionLog.groupBy({
       by:    ['userId'],
       where: { createdAt: { gte: today } },
-    }).then((rows) => rows.length),
+    }).then((rows: unknown[]) => rows.length),
   ]);
 
   // Mood stats with percentages and colors
-  const totalMoodCount = topMoods.reduce((sum, m) => sum + m._count.mood, 0) || 1;
-  const moodStats = topMoods.map((m, i) => ({
+  type MoodGroup = (typeof topMoods)[number];
+  const totalMoodCount = topMoods.reduce((sum: number, m: MoodGroup) => sum + m._count.mood, 0) || 1;
+  const moodStats = topMoods.map((m: MoodGroup, i: number) => ({
     id:              `mood_${i}`,
     mood:            m.mood,
     label:           m.mood,
@@ -1100,7 +1105,7 @@ export async function getAiAnalytics(req: Request, res: Response): Promise<void>
 
   // Day-of-week labels for the 7-day chart
   const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const tokenHistory = dailyActions.map((row) => {
+  const tokenHistory = (dailyActions as { date: string | Date; count: bigint | number }[]).map((row) => {
     const d     = new Date(row.date);
     const count = Number(row.count);
     return {

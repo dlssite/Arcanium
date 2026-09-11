@@ -134,7 +134,7 @@ export async function listCreatorContent(req: Request, res: Response): Promise<v
   });
 
   res.json({
-    data: items.map((c) => ({
+    data: items.map((c: (typeof items)[number]) => ({
       ...c,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
@@ -457,7 +457,7 @@ export async function listCreatorChapters(req: Request, res: Response): Promise<
   });
 
   res.json({
-    data: chapters.map((c) => ({
+    data: chapters.map((c: (typeof chapters)[number]) => ({
       ...c,
       publishedAt: c.publishedAt?.toISOString() ?? null,
       createdAt: c.createdAt.toISOString(),

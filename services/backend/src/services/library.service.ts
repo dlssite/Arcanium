@@ -49,7 +49,7 @@ export async function getLibrary(req: Request, res: Response): Promise<void> {
   // Avoids N+1 — one extra query instead of one per entry.
   const contentIds = [
     ...new Set(
-      shelves.flatMap((s) => s.entries.map((e) => e.content.id)),
+      shelves.flatMap((s: (typeof shelves)[number]) => s.entries.map((e: (typeof s.entries)[number]) => e.content.id)),
     ),
   ];
 
@@ -74,12 +74,12 @@ export async function getLibrary(req: Request, res: Response): Promise<void> {
   );
 
   // Shape the response to match LibraryResponseSchema
-  const shaped = shelves.map((shelf) => ({
+  const shaped = shelves.map((shelf: (typeof shelves)[number]) => ({
     id: shelf.id,
     name: shelf.name,
     isDefault: shelf.isDefault,
     sortOrder: shelf.sortOrder,
-    entries: shelf.entries.map((entry) => ({
+    entries: shelf.entries.map((entry: (typeof shelf.entries)[number]) => ({
       shelfEntryId: entry.id,
       addedAt: entry.addedAt.toISOString(),
       note: entry.note,

@@ -16,7 +16,7 @@ async function getActiveModel(): Promise<string> {
   } catch {
     _cachedModel = env.AI_MODEL;
   }
-  return _cachedModel;
+  return _cachedModel ?? env.AI_MODEL;
 }
 
 /**

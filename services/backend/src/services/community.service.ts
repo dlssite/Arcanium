@@ -68,7 +68,7 @@ export async function getCommunityOverview(_req: Request, res: Response): Promis
     }),
   ]);
 
-  const shapedCircles = circles.map((c) => ({
+  const shapedCircles = circles.map((c: (typeof circles)[number]) => ({
     id: c.id,
     name: c.name,
     tag: c.tag,
@@ -77,7 +77,7 @@ export async function getCommunityOverview(_req: Request, res: Response): Promis
     activeNow: c.sessions[0]?.activeNow ?? 0,
   }));
 
-  const shapedPosts = posts.map((p) => ({
+  const shapedPosts = posts.map((p: (typeof posts)[number]) => ({
     id: p.id,
     author: p.author.displayName,
     authorId: p.author.id,

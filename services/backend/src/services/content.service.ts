@@ -108,7 +108,7 @@ export async function getContent(req: Request, res: Response): Promise<void> {
   res.json({
     data: {
       ...serializeContent(content),
-      chapters: content.chapters.map((c) => ({
+      chapters: content.chapters.map((c: (typeof content.chapters)[number]) => ({
         id:          c.id,
         number:      c.number,
         title:       c.title,

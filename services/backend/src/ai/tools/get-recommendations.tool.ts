@@ -38,7 +38,7 @@ export async function executeGetRecommendations(
     where: { shelf: { userId } },
     select: { contentId: true },
   });
-  const ownedIds = ownedEntries.map((e) => e.contentId);
+  const ownedIds = ownedEntries.map((e: { contentId: string }) => e.contentId);
 
   // Load user preferences from AiMemory
   const memory = await prisma.aiMemory.findUnique({ where: { userId } });
@@ -75,15 +75,15 @@ export async function executeGetRecommendations(
       const genres = Array.isArray((c.metadata as Record<string, unknown>)?.['genres'])
         ? ((c.metadata as Record<string, unknown>)['genres'] as string[])
         : [];
-      const genreMatch = preferredGenres.filter((g) => genres.includes(g)).length;
+      const genreMatch = preferredGenres.filter((g: string) => genres.includes(g)).length;
       return { ...c, _score: genreMatch + (c.rating ?? 0) };
     })
-    .sort((a, b) => b._score - a._score)
+    .sort((a: { _score: number }, b: { _score: number }) => b._score - a._score)
     .slice(0, args.limit);
 
   return {
     count: scored.length,
     mood: args.mood,
-    results: scored.map(({ _score, metadata, ...rest }) => rest),
+    results: scored.map(({ _score, metadata, ...rest }: { _score: number; metadata: unknown; [key: string]: unknown }) => rest),
   };
 }

@@ -165,10 +165,11 @@ export async function getMe(req: Request, res: Response): Promise<void> {
   }
 
   // Compute stats from real data
-  const completedCount = progressRows.filter((p) => p.status === 'COMPLETED').length;
+  type ProgressRow = (typeof progressRows)[number];
+  const completedCount = progressRows.filter((p: ProgressRow) => p.status === 'COMPLETED').length;
 
   // Estimate hours: avg 3h per completed title + 0.5h per in-progress
-  const inProgressCount = progressRows.filter((p) => p.status === 'READING').length;
+  const inProgressCount = progressRows.filter((p: ProgressRow) => p.status === 'READING').length;
   const totalHoursLogged = Math.round(completedCount * 3 + inProgressCount * 0.5);
 
   // Reading streak: consecutive days with a lastReadAt in the last N days
@@ -176,8 +177,8 @@ export async function getMe(req: Request, res: Response): Promise<void> {
   today.setHours(0, 0, 0, 0);
   const readDays = new Set(
     progressRows
-      .filter((p) => p.lastReadAt)
-      .map((p) => {
+      .filter((p: ProgressRow) => p.lastReadAt)
+      .map((p: ProgressRow) => {
         const d = new Date(p.lastReadAt!);
         d.setHours(0, 0, 0, 0);
         return d.getTime();
@@ -209,9 +210,10 @@ export async function getMe(req: Request, res: Response): Promise<void> {
 
   // Merge manually-awarded badges: mark matching computed badges as unlocked,
   // and append any manual-only badges that aren't in the computed list.
-  const manualIds = new Set(manualAwards.map(a => a.badge.key));
+  type ManualAward = (typeof manualAwards)[number];
+  const manualIds = new Set(manualAwards.map((a: ManualAward) => a.badge.key));
   const mergedBadges: UserBadge[] = badges.map(b =>
-    manualIds.has(b.id) ? { ...b, unlocked: true, tier: manualAwards.find(a => a.badge.key === b.id)!.badge.tier } : b
+    manualIds.has(b.id) ? { ...b, unlocked: true, tier: manualAwards.find((a: ManualAward) => a.badge.key === b.id)!.badge.tier } : b
   );
   // Append manual-only awards that have no corresponding computed badge
   for (const award of manualAwards) {
