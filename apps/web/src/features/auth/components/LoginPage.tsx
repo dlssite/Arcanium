@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
-import { authApi } from '@arcanium/api-client';
+import { authApi, resolveBaseUrl } from '@arcanium/api-client';
 import { useAuthStore } from '../store/useAuthStore';
 import arcaniumLogo from '../../../assets/arcanium.png';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
+const API_BASE = resolveBaseUrl();
 
 type Mode = 'login' | 'register';
 

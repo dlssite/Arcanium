@@ -224,12 +224,8 @@ function AwardPanel({ badges, onAward, onRevoke, isAwarding, isRevoking }: Award
     queryKey: ['admin', 'users-search', userSearch],
     enabled:  isAuthenticated && userSearch.trim().length >= 2,
     queryFn:  async () => {
-      const res = await adminApi.getContent({ q: userSearch, limit: 8 } as never);
-      // Use the users endpoint instead
-      const r = await fetch(`/api/v1/admin/users?search=${encodeURIComponent(userSearch)}&limit=8`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('arcanium_admin_token') ?? ''}` },
-      });
-      return r.json() as Promise<{ data: { users: { id: string; displayName: string; email: string; avatarUrl: string | null }[] } }>;
+      const r = await adminApi.getUsers({ search: userSearch, limit: 8 });
+      return r as unknown as { data: { users: { id: string; displayName: string; email: string; avatarUrl: string | null }[] } };
     },
     staleTime: 10_000,
   });

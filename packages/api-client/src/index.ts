@@ -75,6 +75,8 @@ function resolveBaseUrl(): string {
 
 export const apiClient = new ApiClient(resolveBaseUrl());
 
+export { resolveBaseUrl };
+
 // ---------------------------------------------------------------------------
 // Typed endpoint helpers
 // ---------------------------------------------------------------------------
