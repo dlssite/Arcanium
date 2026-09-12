@@ -63,13 +63,9 @@ class ApiClient {
 // ---------------------------------------------------------------------------
 
 function resolveBaseUrl(): string {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const env = (import.meta as any).env as Record<string, string> | undefined;
-    if (env?.['VITE_API_BASE_URL']) return env['VITE_API_BASE_URL'];
-  } catch {
-    // Not a Vite context
-  }
+  // Use the literal form so Vite replaces it statically at build time.
+  // Dynamic key access (env?.['VITE_API_BASE_URL']) bypasses Vite's replacement.
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
   return 'http://localhost:4000';
 }
 
