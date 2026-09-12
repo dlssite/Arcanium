@@ -27,8 +27,8 @@ The backend is an Express + Prisma app compiled to CommonJS. It needs PostgreSQL
 | **Region** | Closest to your users |
 | **Branch** | `main` (or your production branch) |
 | **Runtime** | `Node` |
-| **Build Command** | `npx pnpm@11.21.0 install --frozen-lockfile && npx pnpm@11.21.0 --filter @arcanium/backend build` |
-| **Start Command** | `node services/backend/dist/services/backend/src/index.js` |
+| **Build Command** | `npx pnpm@11.21.0 install --frozen-lockfile && npx pnpm@11.21.0 --filter @arcanium/types build && npx pnpm@11.21.0 --filter @arcanium/backend build` |
+| **Start Command** | `node services/backend/dist/index.js` |
 | **Instance Type** | Starter ($7/mo) minimum — free tier sleeps after 15 min inactivity |
 
 > **Why build from root?** The backend imports `@arcanium/types` from `packages/types` via a pnpm workspace path. Render must install the full workspace for that resolution to work.
