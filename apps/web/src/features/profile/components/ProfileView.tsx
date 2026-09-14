@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Check,
   LogOut,
+  Pencil,
 } from 'lucide-react';
 import BookDetailModal from '../../../components/shared/BookDetailModal.tsx';
 import { useUser } from '../../../hooks/useUser.js';
@@ -27,6 +28,7 @@ import { useLibrary } from '../../../hooks/useLibrary.js';
 import { useAuthStore } from '../../auth/store/useAuthStore';
 import { LIBRARY_FILTER_TABS } from '../../../mocks/mockData.js';
 import { useLogout } from '../../../AppRouter.tsx';
+import ProfileSettingsModal from './ProfileSettingsModal';
 
 /**
  * Icon lookup so badge.iconName strings resolve to lucide components.
@@ -37,6 +39,7 @@ const BADGE_ICONS = { Moon, Sparkles, BookOpen, Compass, Scroll, Clock, Shield, 
 export default function ProfileView() {
   const [showBadgesModal, setShowBadgesModal] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { user, stats, badges } = useUser();
   const { filteredBooks, filterCounts, activeFilter, setFilter, libraryBooks, addBook, removeBook, isInLibrary, isLoading } = useLibrary();
@@ -82,19 +85,58 @@ export default function ProfileView() {
 
       {/* 1. Profile Header Card */}
       <div className="bg-white dark:bg-[#1D1726] rounded-3xl p-5 sm:p-7 border border-[#ECE7DF] dark:border-[#352B44] shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-dark-card flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6 mb-6 w-full">
-        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 border-white dark:border-[#2C2237] ring-4 ring-[#43335A]/15 shadow-md flex-shrink-0">
-          <img src={user.avatarUrl} alt={user.displayName} className="w-full h-full object-cover" />
-        </div>
+        {/* Avatar — clicking opens settings */}
+        <button
+          onClick={() => setShowSettings(true)}
+          aria-label="Edit profile picture"
+          className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex-shrink-0 group focus:outline-none"
+        >
+          <div className="w-full h-full rounded-full overflow-hidden border-4 border-white dark:border-[#2C2237] ring-4 ring-[#43335A]/15 shadow-md">
+            <img src={user.avatarUrl} alt={user.displayName} className="w-full h-full object-cover" />
+          </div>
+          {/* Hover overlay */}
+          <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <Pencil className="w-5 h-5 text-white" />
+          </div>
+        </button>
 
         <div className="flex-1 text-center sm:text-left min-w-0 w-full">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div>
-              <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#2D223B] dark:text-[#F1ECF7]">
-                {user.displayName}
-              </h1>
-              <p className="text-xs sm:text-sm text-[#80778B] dark:text-[#9F94AC] mt-0.5">
-                Master Reader • {user.archiveLevelTitle}
-              </p>
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#2D223B] dark:text-[#F1ECF7]">
+                  {user.displayName}
+                </h1>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  aria-label="Edit profile"
+                  className="w-7 h-7 rounded-lg bg-[#F2EDFA] dark:bg-[#2B2038] border border-[#E3D8F0] dark:border-[#3D2D50] flex items-center justify-center text-[#8C8296] dark:text-[#9A8FA7] hover:text-[#43335A] dark:hover:text-white hover:border-[#43335A] dark:hover:border-[#725499] transition-all active:scale-95"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Bio + gender tags */}
+              <div className="mt-2 space-y-1.5">
+                {(user as any).bio ? (
+                  <p className="text-sm text-[#5A4E66] dark:text-[#C0B4D0] leading-relaxed max-w-sm">
+                    {(user as any).bio}
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="text-xs text-[#B0A6BB] dark:text-[#6B5F7A] italic hover:text-[#43335A] dark:hover:text-[#D1BEE6] transition-colors"
+                  >
+                    + Add a bio
+                  </button>
+                )}
+
+                {(user as any).gender && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F2EDFA] dark:bg-[#2B2038] text-[#43335A] dark:text-[#D1BEE6] border border-[#E3D8F0] dark:border-[#3D2D50]">
+                    {(user as any).gender === 'MALE' ? '♂ Male' : (user as any).gender === 'FEMALE' ? '♀ Female' : '✦ Other'}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="inline-flex items-center justify-center gap-1.5 bg-[#FAF4E6] dark:bg-[#2B2111] text-[#DE9B35] px-3.5 py-1.5 rounded-full border border-[#F2E4C2] dark:border-[#4B3917] font-bold text-xs self-center sm:self-auto">
@@ -137,6 +179,106 @@ export default function ProfileView() {
               );
             })}
           </div>
+
+          {/* XP Rank Card */}
+          {(user as any).xp && (user as any).xp.rank && (() => {
+            const xp = (user as any).xp;
+            const pct: number = xp.progressPct ?? 0;
+            const isMaxRank = !xp.nextRank;
+
+            return (
+              <div className="mt-4 rounded-2xl overflow-hidden border border-[#E3D8F0] dark:border-[#3D2D50] shadow-[0_2px_16px_rgba(67,50,88,0.08)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+                {/* Top band — rank identity */}
+                <div className="relative px-4 pt-3.5 pb-3 bg-gradient-to-r from-[#43335A] via-[#55406E] to-[#6B4F8A] flex items-center justify-between gap-3 overflow-hidden">
+                  {/* Subtle shimmer overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
+
+                  {/* Left — icon + title */}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Level badge */}
+                    <div className="w-9 h-9 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0 shadow-inner">
+                      <span className="text-sm font-bold font-serif text-[#FFDE88] leading-none">{xp.rank.level}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/50 leading-none mb-0.5">
+                        Rank {xp.rank.level}
+                      </p>
+                      <h3 className="text-sm font-bold text-white truncate leading-tight">
+                        {xp.rank.title}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Right — total XP */}
+                  <div className="flex-shrink-0 text-right">
+                    <p className="text-[10px] text-white/50 font-medium uppercase tracking-wider leading-none mb-0.5">
+                      Total XP
+                    </p>
+                    <p className="text-sm font-bold font-mono text-[#FFDE88] leading-tight">
+                      {xp.total.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Bottom band — progress */}
+                <div className="px-4 py-3 bg-gradient-to-r from-[#FAF8F5] to-[#F4EFFE] dark:from-[#1E1728] dark:to-[#221A30]">
+                  {isMaxRank ? (
+                    /* Max rank */
+                    <div className="flex items-center justify-center gap-2 py-1">
+                      <span className="text-[#DE9B35] text-sm">✦</span>
+                      <span className="text-xs font-bold text-[#DE9B35] tracking-widest uppercase">
+                        Max Rank Achieved
+                      </span>
+                      <span className="text-[#DE9B35] text-sm">✦</span>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Progress bar */}
+                      <div className="relative w-full h-3 bg-[#E8E0F0] dark:bg-[#2B2038] rounded-full overflow-hidden mb-2">
+                        {/* Animated fill */}
+                        <div
+                          className="absolute left-0 top-0 h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{
+                            width: `${pct}%`,
+                            background: 'linear-gradient(90deg, #43335A 0%, #725499 60%, #FFDE88 100%)',
+                            boxShadow: pct > 5 ? '0 0 8px rgba(114,84,153,0.6)' : 'none',
+                          }}
+                        />
+                        {/* Segment markers at 25 / 50 / 75 % */}
+                        {[25, 50, 75].map(mark => (
+                          <div
+                            key={mark}
+                            className="absolute top-0 bottom-0 w-px bg-white/40 dark:bg-white/20"
+                            style={{ left: `${mark}%` }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* XP label row */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-[#8C8296] dark:text-[#9A8FA7] font-mono">
+                          <span className="text-[#43335A] dark:text-[#D1BEE6] font-bold">
+                            {xp.xpIntoLevel.toLocaleString()}
+                          </span>
+                          {' / '}{xp.xpNeeded.toLocaleString()} XP
+                        </span>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-[#8C8296] dark:text-[#9A8FA7]">Next:</span>
+                          <span className="text-[10px] font-bold text-[#43335A] dark:text-[#D1BEE6]">
+                            {xp.nextRank.title}
+                          </span>
+                          <span className="text-[10px] font-bold text-[#8C8296] dark:text-[#9A8FA7]">
+                            (Lv.{xp.nextRank.level})
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Core Stats */}
           <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mt-4">
@@ -509,6 +651,12 @@ export default function ProfileView() {
           userId={user.id}
         />
       )}
+
+      {/* Profile settings modal */}
+      <ProfileSettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }

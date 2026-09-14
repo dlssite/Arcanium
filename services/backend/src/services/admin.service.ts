@@ -1790,3 +1790,225 @@ export async function updateFeaturedPin(req: Request, res: Response): Promise<vo
   if (!row) { res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Pin not found' } }); return; }
   res.json({ data: row, error: null });
 }
+
+// ===========================================================================
+// DEFAULT AVATAR MANAGEMENT
+// ===========================================================================
+
+const DefaultAvatarCreateSchema = z.object({
+  url:       z.string().url('Must be a valid URL'),
+  label:     z.string().max(80).default(''),
+  sortOrder: z.coerce.number().int().min(0).default(0),
+  enabled:   z.boolean().default(true),
+});
+
+const DefaultAvatarUpdateSchema = DefaultAvatarCreateSchema.partial();
+
+/** GET /api/v1/admin/default-avatars */
+export async function adminListDefaultAvatars(_req: Request, res: Response): Promise<void> {
+  const avatars = await prisma.defaultAvatar.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+  });
+  res.json({ data: avatars, error: null });
+}
+
+/** POST /api/v1/admin/default-avatars */
+export async function createDefaultAvatar(req: Request, res: Response): Promise<void> {
+  const parsed = DefaultAvatarCreateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).json({ data: null, error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message } });
+    return;
+  }
+  const avatar = await prisma.defaultAvatar.create({ data: parsed.data });
+  res.status(201).json({ data: avatar, error: null });
+}
+
+/** PATCH /api/v1/admin/default-avatars/:id */
+export async function updateDefaultAvatar(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const parsed = DefaultAvatarUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).json({ data: null, error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message } });
+    return;
+  }
+  try {
+    const avatar = await prisma.defaultAvatar.update({ where: { id }, data: parsed.data });
+    res.json({ data: avatar, error: null });
+  } catch {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Avatar not found' } });
+  }
+}
+
+/** DELETE /api/v1/admin/default-avatars/:id */
+export async function deleteDefaultAvatar(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  try {
+    await prisma.defaultAvatar.delete({ where: { id } });
+    res.json({ data: { deleted: true, id }, error: null });
+  } catch {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Avatar not found' } });
+  }
+}
+
+// ===========================================================================
+// RANK DEFINITION MANAGEMENT
+// ===========================================================================
+
+import { seedDefaultRanks } from './xp.service.js';
+
+const RankUpsertSchema = z.object({
+  level:       z.number().int().min(1).max(100),
+  title:       z.string().min(1).max(80),
+  xpRequired:  z.number().int().min(0),
+  icon:        z.string().min(1).max(60).default('Scroll'),
+  colorClass:  z.string().min(1).max(100).default('text-stone-500'),
+  description: z.string().max(300).optional(),
+  enabled:     z.boolean().default(true),
+});
+
+/** GET /api/v1/admin/ranks — all rank definitions */
+export async function adminListRanks(_req: Request, res: Response): Promise<void> {
+  const ranks = await prisma.rankDefinition.findMany({ orderBy: { level: 'asc' } });
+  res.json({ data: ranks, error: null });
+}
+
+/** POST /api/v1/admin/ranks */
+export async function adminCreateRank(req: Request, res: Response): Promise<void> {
+  const parsed = RankUpsertSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).json({ data: null, error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message } });
+    return;
+  }
+  try {
+    const rank = await prisma.rankDefinition.create({ data: parsed.data });
+    res.status(201).json({ data: rank, error: null });
+  } catch {
+    res.status(409).json({ data: null, error: { code: 'CONFLICT', message: 'A rank with this level already exists' } });
+  }
+}
+
+/** PATCH /api/v1/admin/ranks/:id */
+export async function adminUpdateRank(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const parsed = RankUpsertSchema.partial().safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).json({ data: null, error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message } });
+    return;
+  }
+  try {
+    const rank = await prisma.rankDefinition.update({ where: { id }, data: parsed.data });
+    res.json({ data: rank, error: null });
+  } catch {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Rank not found' } });
+  }
+}
+
+/** DELETE /api/v1/admin/ranks/:id */
+export async function adminDeleteRank(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  try {
+    await prisma.rankDefinition.delete({ where: { id } });
+    res.json({ data: { deleted: true, id }, error: null });
+  } catch {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Rank not found' } });
+  }
+}
+
+/** POST /api/v1/admin/ranks/seed — insert default 10 ranks if not already present */
+export async function adminSeedRanks(_req: Request, res: Response): Promise<void> {
+  const result = await seedDefaultRanks();
+  res.json({ data: result, error: null });
+}
+
+// ===========================================================================
+// XP CONFIG MANAGEMENT
+// ===========================================================================
+
+import {
+  XP_SOURCES,
+  XP_DEFAULTS,
+  type XpSource,
+  type XpConfig,
+  invalidateXpConfigCache,
+} from './xp.service.js';
+
+const XpConfigUpdateSchema = z.object({
+  BOOK_COMPLETE:  z.number().int().min(0).max(10000).optional(),
+  CHAPTER_READ:   z.number().int().min(0).max(1000).optional(),
+  REVIEW_SUBMIT:  z.number().int().min(0).max(1000).optional(),
+  LIBRARY_ADD:    z.number().int().min(0).max(1000).optional(),
+  STREAK_7_DAY:   z.number().int().min(0).max(5000).optional(),
+  STREAK_30_DAY:  z.number().int().min(0).max(10000).optional(),
+});
+
+/** GET /api/v1/admin/xp-config — current XP values (DB overrides + defaults) */
+export async function getXpConfigAdmin(_req: Request, res: Response): Promise<void> {
+  const rows = await prisma.appConfig.findMany({
+    where: { key: { startsWith: 'xp.' } },
+  });
+
+  const config: XpConfig = { ...XP_DEFAULTS };
+  for (const row of rows) {
+    const source = row.key.replace('xp.', '').toUpperCase() as XpSource;
+    if (source in config) {
+      const val = parseInt(row.value, 10);
+      if (!isNaN(val) && val >= 0) config[source] = val;
+    }
+  }
+
+  res.json({ data: config, error: null });
+}
+
+/** PATCH /api/v1/admin/xp-config — update one or more XP source values */
+export async function updateXpConfigAdmin(req: Request, res: Response): Promise<void> {
+  const parsed = XpConfigUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).json({
+      data: null,
+      error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message },
+    });
+    return;
+  }
+
+  const userId = (req as any).user?.id ?? null;
+
+  // Upsert each provided key into AppConfig
+  await Promise.all(
+    (Object.entries(parsed.data) as [XpSource, number][])
+      .filter(([, v]) => v !== undefined)
+      .map(([source, value]) =>
+        prisma.appConfig.upsert({
+          where:  { key: `xp.${source.toLowerCase()}` },
+          update: { value: String(value), updatedBy: userId },
+          create: { key: `xp.${source.toLowerCase()}`, value: String(value), updatedBy: userId },
+        }),
+      ),
+  );
+
+  // Bust the in-memory cache so the next grantXp() picks up new values
+  invalidateXpConfigCache();
+
+  // Return the full merged config
+  const rows = await prisma.appConfig.findMany({
+    where: { key: { startsWith: 'xp.' } },
+  });
+  const config: XpConfig = { ...XP_DEFAULTS };
+  for (const row of rows) {
+    const source = row.key.replace('xp.', '').toUpperCase() as XpSource;
+    if (source in config) {
+      const val = parseInt(row.value, 10);
+      if (!isNaN(val) && val >= 0) config[source] = val;
+    }
+  }
+
+  res.json({ data: config, error: null });
+}
+
+/** POST /api/v1/admin/xp-config/reset — restore all XP values to hardcoded defaults */
+export async function resetXpConfigAdmin(_req: Request, res: Response): Promise<void> {
+  await prisma.appConfig.deleteMany({
+    where: { key: { startsWith: 'xp.' } },
+  });
+  invalidateXpConfigCache();
+  res.json({ data: XP_DEFAULTS, error: null });
+}

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { XpSummarySchema } from './xp.js';
 
 // ---------------------------------------------------------------------------
 // User — mirrors the Prisma User model
@@ -12,6 +13,9 @@ export const UserRoleSchema = z.enum([
 ]);
 export type UserRole = z.infer<typeof UserRoleSchema>;
 
+export const GenderSchema = z.enum(['MALE', 'FEMALE', 'OTHER']);
+export type Gender = z.infer<typeof GenderSchema>;
+
 export const CreatorApplicationStatusSchema = z.enum([
   'PENDING',
   'APPROVED',
@@ -24,6 +28,8 @@ export const UserSchema = z.object({
   email: z.string().email(),
   displayName: z.string().min(1).max(100),
   avatarUrl: z.string().url().nullable(),
+  bio: z.string().max(300).nullable().optional(),
+  gender: GenderSchema.nullable().optional(),
   googleId: z.string().nullable(),
   /** 1–5, computed from reading activity */
   archiveLevel: z.number().int().min(1).max(5).default(1),
@@ -83,8 +89,9 @@ export type ShelfSummary = z.infer<typeof ShelfSummarySchema>;
 
 export const UserProfileSchema = UserSchema.extend({
   shelves: z.array(ShelfSummarySchema),
-  stats: ReadingStatsSchema,
-  badges: z.array(UserBadgeSchema),
+  stats:   ReadingStatsSchema,
+  badges:  z.array(UserBadgeSchema),
+  xp:      XpSummarySchema.optional(),
 });
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
@@ -95,7 +102,22 @@ export type UserProfile = z.infer<typeof UserProfileSchema>;
 
 export const UpdateUserSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
-  avatarUrl: z.string().url().nullable().optional(),
+  avatarUrl:   z.string().url().nullable().optional(),
+  bio:         z.string().max(300).nullable().optional(),
+  gender:      GenderSchema.nullable().optional(),
 });
 
 export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
+
+// ---------------------------------------------------------------------------
+// Default Avatar — public shape returned by GET /api/v1/users/default-avatars
+// ---------------------------------------------------------------------------
+
+export const DefaultAvatarSchema = z.object({
+  id:        z.string(),
+  url:       z.string().url(),
+  label:     z.string(),
+  sortOrder: z.number().int(),
+});
+
+export type DefaultAvatar = z.infer<typeof DefaultAvatarSchema>;

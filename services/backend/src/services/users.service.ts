@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import type { UserBadge, ReadingStats } from '@arcanium/types';
 import { CreatorApplicationSchema } from '@arcanium/types';
+import { getRanks, computeRank } from './xp.service.js';
 
 // ---------------------------------------------------------------------------
 // Badge definitions — derived from user activity at query time.
@@ -116,7 +117,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
   const userId = req.user.id;
 
   // Fetch user + reading progress in parallel
-  const [user, progressRows, aiActionCount, manualAwards, latestApplication] = await Promise.all([
+  const [user, progressRows, aiActionCount, manualAwards, latestApplication, ranks] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -124,6 +125,9 @@ export async function getMe(req: Request, res: Response): Promise<void> {
         email: true,
         displayName: true,
         avatarUrl: true,
+        bio: true,
+        gender: true,
+        totalXp: true,
         role: true,
         createdAt: true,
         shelves: {
@@ -154,6 +158,8 @@ export async function getMe(req: Request, res: Response): Promise<void> {
       orderBy: { submittedAt: 'desc' },
       select: { status: true },
     }),
+    // Rank definitions for XP computation
+    getRanks(),
   ]);
 
   if (!user) {
@@ -239,6 +245,9 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     : activityScore >= 20  ? 2
     : 1;
 
+  const totalXp = user.totalXp ?? 0;
+  const { rank, nextRank, xpIntoLevel, xpNeeded, progressPct } = computeRank(totalXp, ranks);
+
   res.json({
     data: {
       ...user,
@@ -248,6 +257,14 @@ export async function getMe(req: Request, res: Response): Promise<void> {
       creatorApplicationStatus: latestApplication?.status ?? null,
       stats,
       badges: mergedBadges,
+      xp: {
+        total:       totalXp,
+        rank,
+        nextRank,
+        xpIntoLevel,
+        xpNeeded,
+        progressPct,
+      },
     },
     error: null,
   });
@@ -258,27 +275,59 @@ export async function getMe(req: Request, res: Response): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function updateMe(req: Request, res: Response): Promise<void> {
-  const { displayName, avatarUrl } = req.body as {
+  const { displayName, avatarUrl, bio, gender } = req.body as {
     displayName?: string;
     avatarUrl?: string | null;
+    bio?: string | null;
+    gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
   };
 
   const updated = await prisma.user.update({
     where: { id: req.user.id },
     data: {
       ...(displayName !== undefined ? { displayName } : {}),
-      ...(avatarUrl !== undefined ? { avatarUrl } : {}),
+      ...(avatarUrl  !== undefined ? { avatarUrl }  : {}),
+      ...(bio        !== undefined ? { bio }         : {}),
+      ...(gender     !== undefined ? { gender }      : {}),
     },
     select: {
       id: true,
       email: true,
       displayName: true,
       avatarUrl: true,
+      bio: true,
+      gender: true,
       createdAt: true,
     },
   });
 
   res.json({ data: updated, error: null });
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/users/default-avatars  (public — no auth required)
+// ---------------------------------------------------------------------------
+
+export async function getDefaultAvatars(_req: Request, res: Response): Promise<void> {
+  const avatars = await prisma.defaultAvatar.findMany({
+    where:   { enabled: true },
+    orderBy: { sortOrder: 'asc' },
+    select:  { id: true, url: true, label: true, sortOrder: true },
+  });
+  res.json({ data: avatars, error: null });
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/users/ranks  (public — no auth required)
+// ---------------------------------------------------------------------------
+
+export async function getPublicRanks(_req: Request, res: Response): Promise<void> {
+  const ranks = await prisma.rankDefinition.findMany({
+    where:   { enabled: true },
+    orderBy: { level: 'asc' },
+    select:  { id: true, level: true, title: true, xpRequired: true, icon: true, colorClass: true, description: true },
+  });
+  res.json({ data: ranks, error: null });
 }
 
 // ---------------------------------------------------------------------------

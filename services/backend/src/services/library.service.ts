@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { AddToShelfSchema, UpsertProgressSchema } from '@arcanium/types';
+import { grantXp, checkStreakMilestones } from './xp.service.js';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/library
@@ -163,6 +164,9 @@ export async function addToShelf(req: Request, res: Response): Promise<void> {
     create: { userId: req.user.id, contentId, status: 'PLAN_TO_READ' },
   });
 
+  // Grant XP for adding a book (idempotent — once per book per user)
+  grantXp(req.user.id, 'LIBRARY_ADD', { contentId }).catch(() => {/* non-blocking */});
+
   res.json({ data: { message: 'Added to shelf' }, error: null });
 }
 
@@ -297,6 +301,41 @@ export async function upsertProgress(
       ...(status === 'COMPLETED' ? { completedAt: now } : {}),
     },
   });
+
+  // ── XP grants (non-blocking, idempotent) ────────────────────────────────
+  const userId = req.user.id;
+
+  if (status === 'COMPLETED') {
+    // Book complete — 100 XP (once per book per user)
+    grantXp(userId, 'BOOK_COMPLETE', { contentId }).catch(() => {});
+  } else if (status === 'READING' && lastChapterRead !== undefined) {
+    // Chapter read — 5 XP (once per chapter per user, keyed by contentId+chapter)
+    grantXp(userId, 'CHAPTER_READ', { contentId, chapter: lastChapterRead }).catch(() => {});
+  }
+
+  // Compute streak from existing progress and check milestones
+  ;(async () => {
+    try {
+      const allProgress = await prisma.readingProgress.findMany({
+        where: { userId },
+        select: { lastReadAt: true },
+      });
+      const today = new Date(); today.setHours(0,0,0,0);
+      const readDays = new Set(
+        allProgress
+          .filter((p: { lastReadAt: Date | null }) => p.lastReadAt)
+          .map((p: { lastReadAt: Date | null }) => {
+            const d = new Date(p.lastReadAt!); d.setHours(0,0,0,0); return d.getTime();
+          })
+      );
+      let streak = 0;
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        if (readDays.has(d.getTime())) streak++; else break;
+      }
+      await checkStreakMilestones(userId, streak);
+    } catch { /* non-blocking */ }
+  })();
 
   res.json({ data: { message: 'Progress updated', progressId: progress.id }, error: null });
 }

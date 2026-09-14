@@ -109,7 +109,15 @@ import type {
   AdminReviewsListResponse,
   AdminReviewQuery,
   AdminReviewAnalytics,
+  UpdateUserInput,
+  DefaultAvatar,
+  RankDefinition,
+  AdminRankDefinition,
+  AdminRankInput,
+  XpConfig,
 } from '@arcanium/types';
+
+export type { AdminRankDefinition, AdminRankInput, RankDefinition, DefaultAvatar, XpConfig };
 
 export const authApi = {
   register: (body: RegisterInput) =>
@@ -124,6 +132,18 @@ export const authApi = {
 
 export const usersApi = {
   getMe: () => apiClient.get<UserProfile>('/api/v1/users/me'),
+
+  /** PATCH /api/v1/users/me — update display name, avatar URL, bio, gender */
+  updateMe: (body: UpdateUserInput) =>
+    apiClient.patch<UserProfile>('/api/v1/users/me', body),
+
+  /** GET /api/v1/users/default-avatars — public list of enabled preset avatars */
+  getDefaultAvatars: () =>
+    apiClient.get<DefaultAvatar[]>('/api/v1/users/default-avatars'),
+
+  /** GET /api/v1/users/ranks — public list of enabled ranks ordered by level */
+  getRanks: () =>
+    apiClient.get<RankDefinition[]>('/api/v1/users/ranks'),
 };
 
 export const libraryApi = {
@@ -565,6 +585,23 @@ export interface AdminBadgeAward {
   user?:     { id: string; displayName: string; email: string; avatarUrl: string | null };
 }
 
+export interface AdminDefaultAvatar {
+  id:        string;
+  url:       string;
+  label:     string;
+  sortOrder: number;
+  enabled:   boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminDefaultAvatarInput {
+  url:       string;
+  label?:    string;
+  sortOrder?: number;
+  enabled?:  boolean;
+}
+
 export interface AdminScraperParser {
   id: string;
   name: string;
@@ -851,4 +888,58 @@ export const adminApi = {
   /** PATCH /api/v1/admin/collections/entries/:entryId — reorder */
   reorderCollectionEntry: (entryId: string, sortOrder: number) =>
     apiClient.patch<CollectionEntry>(`/api/v1/admin/collections/entries/${entryId}`, { sortOrder }),
+
+  // ── Default Avatar Management ──────────────────────────────────────────────
+
+  /** GET /api/v1/admin/default-avatars — all avatars including disabled */
+  listDefaultAvatars: () =>
+    apiClient.get<AdminDefaultAvatar[]>('/api/v1/admin/default-avatars'),
+
+  /** POST /api/v1/admin/default-avatars — add a new preset avatar */
+  createDefaultAvatar: (body: AdminDefaultAvatarInput) =>
+    apiClient.post<AdminDefaultAvatar>('/api/v1/admin/default-avatars', body),
+
+  /** PATCH /api/v1/admin/default-avatars/:id */
+  updateDefaultAvatar: (id: string, body: Partial<AdminDefaultAvatarInput>) =>
+    apiClient.patch<AdminDefaultAvatar>(`/api/v1/admin/default-avatars/${id}`, body),
+
+  /** DELETE /api/v1/admin/default-avatars/:id */
+  deleteDefaultAvatar: (id: string) =>
+    apiClient.delete<{ deleted: boolean; id: string }>(`/api/v1/admin/default-avatars/${id}`),
+
+  // ── Rank Definition Management ─────────────────────────────────────────────
+
+  /** GET /api/v1/admin/ranks — all ranks including disabled */
+  listRanks: () =>
+    apiClient.get<AdminRankDefinition[]>('/api/v1/admin/ranks'),
+
+  /** POST /api/v1/admin/ranks */
+  createRank: (body: AdminRankInput) =>
+    apiClient.post<AdminRankDefinition>('/api/v1/admin/ranks', body),
+
+  /** PATCH /api/v1/admin/ranks/:id */
+  updateRank: (id: string, body: Partial<AdminRankInput>) =>
+    apiClient.patch<AdminRankDefinition>(`/api/v1/admin/ranks/${id}`, body),
+
+  /** DELETE /api/v1/admin/ranks/:id */
+  deleteRank: (id: string) =>
+    apiClient.delete<{ deleted: boolean; id: string }>(`/api/v1/admin/ranks/${id}`),
+
+  /** POST /api/v1/admin/ranks/seed — insert default 10 ranks */
+  seedDefaultRanks: () =>
+    apiClient.post<{ seeded: number; skipped: number }>('/api/v1/admin/ranks/seed'),
+
+  // ── XP Config ──────────────────────────────────────────────────────────────
+
+  /** GET /api/v1/admin/xp-config — current XP source amounts */
+  getXpConfig: () =>
+    apiClient.get<XpConfig>('/api/v1/admin/xp-config'),
+
+  /** PATCH /api/v1/admin/xp-config — update one or more XP source amounts */
+  updateXpConfig: (body: Partial<XpConfig>) =>
+    apiClient.patch<XpConfig>('/api/v1/admin/xp-config', body),
+
+  /** POST /api/v1/admin/xp-config/reset — restore all values to hardcoded defaults */
+  resetXpConfig: () =>
+    apiClient.post<XpConfig>('/api/v1/admin/xp-config/reset'),
 };

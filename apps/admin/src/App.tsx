@@ -13,6 +13,8 @@ import { ReviewsPage } from './pages/ReviewsPage';
 
 import { HonorsPage } from './pages/HonorsPage';
 import { CollectionsPage } from './pages/CollectionsPage';
+import { DefaultAvatarsPage } from './pages/DefaultAvatarsPage';
+import { RanksPage } from './pages/RanksPage';
 
 export const App: React.FC = () => {
   return (
@@ -29,7 +31,9 @@ export const App: React.FC = () => {
             <Route path="ai-liber" element={<LiberAnalyticsPage />} />
             <Route path="honors" element={<HonorsPage />} />
             <Route path="collections" element={<CollectionsPage />} />
-            <Route path="settings" element={<FeatureFlagsPage />} />
+            <Route path="avatars"     element={<DefaultAvatarsPage />} />
+            <Route path="ranks"       element={<RanksPage />} />
+            <Route path="settings"    element={<FeatureFlagsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>

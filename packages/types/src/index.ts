@@ -8,3 +8,4 @@ export * from './api.js';
 export * from './community.js';
 export * from './creator.js';
 export * from './review.js';
+export * from './xp.js';

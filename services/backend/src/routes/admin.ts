@@ -14,6 +14,9 @@ import {
   listBadges, createBadge, updateBadge, deleteBadge,
   listBadgeAwards, listUserBadges, awardBadge, revokeBadge, seedDefaultBadges,
   adminListFeatured, pinContent, unpinContent, updateFeaturedPin,
+  adminListDefaultAvatars, createDefaultAvatar, updateDefaultAvatar, deleteDefaultAvatar,
+  adminListRanks, adminCreateRank, adminUpdateRank, adminDeleteRank, adminSeedRanks,
+  getXpConfigAdmin, updateXpConfigAdmin, resetXpConfigAdmin,
 } from '../services/admin.service.js';
 import {
   adminListCollections, createCollection, updateCollection, deleteCollection,
@@ -230,3 +233,51 @@ adminRouter.get('/reviews/analytics', getReviewAnalytics);
 
 /** DELETE /api/v1/admin/reviews/:reviewId   — remove a review */
 adminRouter.delete('/reviews/:reviewId', deleteReviewAdmin);
+
+// ---------------------------------------------------------------------------
+// Default Avatar Management
+// ---------------------------------------------------------------------------
+
+/** GET    /api/v1/admin/default-avatars          — all avatars (incl. disabled) */
+adminRouter.get('/default-avatars', adminListDefaultAvatars);
+
+/** POST   /api/v1/admin/default-avatars          — add a new default avatar */
+adminRouter.post('/default-avatars', createDefaultAvatar);
+
+/** PATCH  /api/v1/admin/default-avatars/:id      — update url / label / order / enabled */
+adminRouter.patch('/default-avatars/:id', updateDefaultAvatar);
+
+/** DELETE /api/v1/admin/default-avatars/:id      — remove a default avatar */
+adminRouter.delete('/default-avatars/:id', deleteDefaultAvatar);
+
+// ---------------------------------------------------------------------------
+// Rank Definition Management
+// ---------------------------------------------------------------------------
+
+/** GET    /api/v1/admin/ranks           — list all ranks */
+adminRouter.get('/ranks', adminListRanks);
+
+/** POST   /api/v1/admin/ranks           — create a rank */
+adminRouter.post('/ranks', adminCreateRank);
+
+/** POST   /api/v1/admin/ranks/seed      — seed 10 defaults */
+adminRouter.post('/ranks/seed', adminSeedRanks);
+
+/** PATCH  /api/v1/admin/ranks/:id       — update a rank */
+adminRouter.patch('/ranks/:id', adminUpdateRank);
+
+/** DELETE /api/v1/admin/ranks/:id       — delete a rank */
+adminRouter.delete('/ranks/:id', adminDeleteRank);
+
+// ---------------------------------------------------------------------------
+// XP Config
+// ---------------------------------------------------------------------------
+
+/** GET  /api/v1/admin/xp-config         — current XP source values */
+adminRouter.get('/xp-config', getXpConfigAdmin);
+
+/** PATCH /api/v1/admin/xp-config        — update one or more XP values */
+adminRouter.patch('/xp-config', updateXpConfigAdmin);
+
+/** POST /api/v1/admin/xp-config/reset   — restore defaults */
+adminRouter.post('/xp-config/reset', resetXpConfigAdmin);

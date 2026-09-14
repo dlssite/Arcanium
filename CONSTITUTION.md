@@ -334,7 +334,8 @@ The AI Housekeeper is a first-class feature, not a chatbot bolted on at the end.
 
 Follow Conventional Commits: <type>(<scope>): <description>
 
-- Types: eat, ix, docs, style, efactor, perf, 	est, chore, ci
+- Types: eat, ix, docs, style, 
+efactor, perf, 	est, chore, ci
 - Scope: the workspace package or app name (e.g., web, ackend, ui, docs)
 - Example: eat(web): add offline reading mode for cached chapters
 

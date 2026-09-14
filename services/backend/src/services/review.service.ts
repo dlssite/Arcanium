@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import type { User } from '@prisma/client';
+import { grantXp } from './xp.service.js';
 
 /**
  * Review Service
@@ -271,6 +272,9 @@ export async function createOrUpdateReview(req: Request, res: Response): Promise
 
     // Recalculate content aggregates
     await updateContentAggregates(content.id);
+
+    // Grant XP for writing a review (once per book per user)
+    grantXp(user.id, 'REVIEW_SUBMIT', { contentId: content.id }).catch(() => {});
 
     res.json({
       data: serializeReview(review),
