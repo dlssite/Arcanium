@@ -3,9 +3,9 @@ import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  Menu, Bell, Flame, Play, Pause, Target, Check,
+  Flame, Play, Pause, Target, Check,
   ChevronRight, ChevronLeft,
-  BookOpen, Sun, Moon, Sparkles,
+  BookOpen, Sparkles,
   LayoutGrid, ScrollText, BookText, Library, Rows,
   Feather, ShieldCheck, Clock, ArrowRight,
 } from 'lucide-react';
@@ -203,51 +203,6 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
       {/* Background accents */}
       <div className="absolute top-0 left-0 w-72 h-72 bg-radial from-[#F1EDE4] dark:from-[#231833]/40 via-[#F8F5EE]/40 dark:via-transparent to-transparent pointer-events-none -z-10 blur-2xl" />
       <div className="absolute top-10 right-0 w-96 h-96 bg-radial from-[#EDE5D8] dark:from-[#35254A]/30 via-[#FAF6ED]/60 dark:via-transparent to-transparent pointer-events-none -z-10 blur-3xl" />
-
-      {/* ── Top Mobile Header ─────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 -mx-5 px-5 py-2.5 bg-[#FAF8F5]/95 dark:bg-[#120E18]/95 backdrop-blur-md border-b border-[#ECE7DF]/80 dark:border-[#2C2237]/80 flex lg:hidden items-center justify-between shadow-[0_2px_12px_rgba(0,0,0,0.02)] transition-all">
-        <button
-          aria-label="Menu"
-          className="w-10 h-10 rounded-full bg-white dark:bg-[#1E1728] shadow-xs border border-[#ECE7DF] dark:border-[#352B44] flex items-center justify-center text-[#43335A] dark:text-[#E2D9EC] transition-all hover:bg-stone-50 active:scale-95"
-        >
-          <Menu className="w-5 h-5 stroke-[2]" />
-        </button>
-
-        <div className="flex items-center gap-2.5">
-          {setTheme && (
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              aria-label="Toggle Theme"
-              className="w-10 h-10 rounded-full bg-white dark:bg-[#1E1728] shadow-xs border border-[#ECE7DF] dark:border-[#352B44] flex items-center justify-center text-[#43335A] dark:text-[#FFDE88] transition-all hover:bg-stone-50 active:scale-95"
-            >
-              {theme === 'dark'
-                ? <Sun  className="w-4 h-4 text-[#FFDE88]" />
-                : <Moon className="w-4 h-4 text-[#43335A]" />}
-            </button>
-          )}
-
-          <button
-            aria-label="Notifications"
-            className="w-10 h-10 rounded-full bg-white dark:bg-[#1E1728] shadow-xs border border-[#ECE7DF] dark:border-[#352B44] flex items-center justify-center text-[#43335A] dark:text-[#E2D9EC] relative transition-all hover:bg-stone-50 active:scale-95"
-          >
-            <Bell className="w-5 h-5 stroke-[1.8]" />
-            {hasUnreadNotifications && (
-              <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#43335A] dark:bg-[#DE9B35] rounded-full ring-2 ring-white dark:ring-[#1E1728]" />
-            )}
-          </button>
-
-          <button
-            aria-label="User Profile"
-            className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-[#352B44] shadow-xs ring-1 ring-[#ECE7DF] dark:ring-[#47395D] active:scale-95 transition-transform"
-          >
-            <img
-              src={user.avatarUrl ?? avatarImg}
-              alt={user.displayName}
-              className="w-full h-full object-cover"
-            />
-          </button>
-        </div>
-      </header>
 
       {/* ── Hero Welcome ───────────────────────────────────────────────────── */}
       <section className="relative mt-4 lg:mt-2 mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4 w-full">

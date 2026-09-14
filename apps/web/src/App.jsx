@@ -6,6 +6,7 @@ import { lazy } from 'react';
 import BottomNav from './components/layout/BottomNav.jsx';
 import DesktopSidebar from './components/layout/DesktopSidebar.jsx';
 import DesktopHeader from './components/layout/DesktopHeader.jsx';
+import MobileHeader from './components/layout/MobileHeader.jsx';
 import LiberCompanionDock from './components/layout/LiberCompanionDock.jsx';
 import { features } from './config/features.ts';
 import { OfflineBanner } from './components/shared/OfflineBanner.tsx';
@@ -142,7 +143,7 @@ export default function App() {
           >
             <Suspense fallback={<ViewLoader />}>
               <Routes>
-                <Route path="/"          element={<HomeView onOpenLiber={() => setActiveTab('liber')} theme={theme} setTheme={setTheme} />} />
+                <Route path="/"          element={<HomeView onOpenLiber={() => setActiveTab('liber')} theme={theme} setTheme={setTheme} setActiveTab={setActiveTab} />} />
                 <Route path="/explore"   element={<ExploreView />} />
                 <Route path="/library"   element={<LibraryView />} />
                 <Route path="/liber"     element={features.aiHousekeeper ? <LiberView onBack={() => setActiveTab('home')} /> : <Navigate to="/" replace />} />
@@ -168,6 +169,17 @@ export default function App() {
       {/* MOBILE LAYOUT (< 1024px)                                            */}
       {/* ------------------------------------------------------------------ */}
       <div className="lg:hidden flex flex-col min-h-screen w-full bg-[#FAF8F5] dark:bg-[#120E18] relative transition-colors duration-200">
+
+        {/* Shared sticky header — hidden on the full-screen Liber tab */}
+        {!isLiberTab && (
+          <MobileHeader
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            theme={theme}
+            setTheme={setTheme}
+          />
+        )}
+
         <div className={`flex-1 w-full relative ${isLiberTab ? 'pb-0' : 'pb-20'}`}>
           <Suspense fallback={<ViewLoader />}>
             <Routes>
