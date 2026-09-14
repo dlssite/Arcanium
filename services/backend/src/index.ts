@@ -16,6 +16,7 @@ import { collectionsRouter } from './routes/collections.js';
 import { communityRouter } from './routes/community.js';
 import { creatorRouter } from './routes/creator.js';
 import { adminRouter }   from './routes/admin.js';
+import { reviewsRouter } from './routes/reviews.js';
 import { aiRouter }      from './ai/router.js';
 import { scraperRouter } from './scraper/scraperRouter.js';
 import { initScraperQueue } from './scraper/scraperQueue.js';
@@ -81,6 +82,7 @@ app.use('/api/v1/community', communityRouter);
 app.use('/api/v1/creator', creatorRouter);
 app.use('/api/v1/admin',   adminRouter);
 app.use('/api/v1/admin/content', scraperRouter);
+app.use('/api/v1/reviews', reviewsRouter);
 app.use('/api/v1/ai',      aiRouter);
 
 // ── Health check ─────────────────────────────────────────────────────────────

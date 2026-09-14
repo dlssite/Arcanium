@@ -5,6 +5,7 @@ import {
   CheckCircle2, Trash2, BookOpen,
 } from 'lucide-react';
 import { features } from '../../config/features';
+import { ReviewSection } from '../../features/reviews/index.js';
 
 /**
  * BookDetailModal — displays full details for any content item.
@@ -28,6 +29,8 @@ interface BookDetailModalProps {
   onAddToLibrary?:      (book: Record<string, unknown>) => void;
   onRemoveFromLibrary?: (book: Record<string, unknown>) => void;
   isInLibrary?:         boolean;
+  isAuthenticated?:     boolean;
+  userId?:              string;
 }
 
 export default function BookDetailModal({
@@ -37,6 +40,8 @@ export default function BookDetailModal({
   onAddToLibrary,
   onRemoveFromLibrary,
   isInLibrary = false,
+  isAuthenticated = false,
+  userId,
 }: BookDetailModalProps) {
   if (!book) return null;
 
@@ -165,6 +170,18 @@ export default function BookDetailModal({
               <p className="text-xs leading-relaxed text-[#685F73] dark:text-[#B9ADC5]">
                 {synopsis}
               </p>
+            </div>
+          )}
+
+          {/* ── Reviews Section ────────────────────────────────────────────── */}
+          {features.reader && slug && (
+            <div className="mt-6 border-t border-[#EFEAE2] dark:border-[#352B44]">
+              <ReviewSection
+                slug={slug}
+                contentId={book.id as string}
+                isAuthenticated={isAuthenticated}
+                {...(userId && { userId })}
+              />
             </div>
           )}
 

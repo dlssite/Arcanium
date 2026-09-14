@@ -19,6 +19,11 @@ import {
   adminListCollections, createCollection, updateCollection, deleteCollection,
   listCollectionEntries, addCollectionEntry, removeCollectionEntry, reorderCollectionEntry,
 } from '../services/collections.service.js';
+import {
+  getReviewsAdmin,
+  deleteReviewAdmin,
+  getReviewAnalytics,
+} from '../services/review.service.js';
 
 export const adminRouter: Router = Router();
 
@@ -212,3 +217,16 @@ adminRouter.delete('/collections/:id/entries/:entryId', removeCollectionEntry);
 
 /** PATCH  /api/v1/admin/collections/entries/:entryId    — update sortOrder */
 adminRouter.patch('/collections/entries/:entryId', reorderCollectionEntry);
+
+// ---------------------------------------------------------------------------
+// Book Reviews
+// ---------------------------------------------------------------------------
+
+/** GET    /api/v1/admin/reviews             — list all reviews with filters */
+adminRouter.get('/reviews', getReviewsAdmin);
+
+/** GET    /api/v1/admin/reviews/analytics   — platform-wide review stats */
+adminRouter.get('/reviews/analytics', getReviewAnalytics);
+
+/** DELETE /api/v1/admin/reviews/:reviewId   — remove a review */
+adminRouter.delete('/reviews/:reviewId', deleteReviewAdmin);

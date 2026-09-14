@@ -329,6 +329,155 @@ async function main() {
   }
   console.info("Seeded", scraperSeeds.length, "scraper configs");
 
+  // ---------------------------------------------------------------------------
+  // Book Reviews & Ratings — sample reviews for dev/demo content
+  // ---------------------------------------------------------------------------
+
+  // Seed extra reader accounts so we get a spread of reviewers
+  const reviewer1 = await createUserWithShelves("sol.vance@arcanium.local",    "Sol Vance",     "reader123");
+  const reviewer2 = await createUserWithShelves("mira.ashford@arcanium.local", "Mira Ashford",  "reader123");
+  const reviewer3 = await createUserWithShelves("finn.darrow@arcanium.local",  "Finn Darrow",   "reader123");
+
+  // All content in the catalogue (seeded above + anything from reseed.mjs)
+  const allContent = await prisma.content.findMany({ select: { id: true, slug: true, title: true } });
+
+  if (allContent.length > 0) {
+    // Review payloads: (reviewer, content index, rating, text)
+    const reviewSeeds: Array<{
+      user:       { id: string };
+      contentIdx: number;
+      rating:     number;
+      reviewText: string | null;
+    }> = [
+      {
+        user:       devUser,
+        contentIdx: 0,
+        rating:     5,
+        reviewText: "An absolute masterpiece. The world-building is unlike anything I've ever encountered — every chapter peels back another layer of this richly imagined universe. Highly recommended for anyone who loves deep, immersive storytelling.",
+      },
+      {
+        user:       demoUser,
+        contentIdx: 0,
+        rating:     4,
+        reviewText: "A wonderful read with a lot of heart. The character development is exceptional, and the pacing keeps you hooked from the first page. My only minor gripe is the middle act drags slightly, but the payoff is absolutely worth it.",
+      },
+      {
+        user:       reviewer1,
+        contentIdx: 0,
+        rating:     5,
+        reviewText: "I finished this in one sitting — which says everything. The prose is beautiful, the dialogue sharp, and the themes hit surprisingly close to home. A must-read for fans of the genre.",
+      },
+      {
+        user:       reviewer2,
+        contentIdx: 0,
+        rating:     3,
+        reviewText: "Decent enough, but not quite what I hoped for. The opening chapters are strong, but the story loses momentum in the second half. Worth reading if you're already a fan, but maybe not the best entry point.",
+      },
+      {
+        user:       reviewer3,
+        contentIdx: 0,
+        rating:     4,
+        reviewText: "Really enjoyed this one. The magic system is inventive and the side characters are surprisingly fleshed out. Picked this up on a whim and ended up completely absorbed. Looking forward to what comes next.",
+      },
+      // Second content item
+      {
+        user:       devUser,
+        contentIdx: 1,
+        rating:     4,
+        reviewText: "A beautifully layered story that rewards patience. The author has a gift for atmosphere, and the world feels genuinely lived-in. Some plot threads could have been resolved more cleanly, but overall a satisfying experience.",
+      },
+      {
+        user:       reviewer1,
+        contentIdx: 1,
+        rating:     5,
+        reviewText: "I rarely give five stars but this earned every single one. The ending in particular left me sitting quietly for a few minutes just processing everything. Exceptional work — one of the best I've read on this platform.",
+      },
+      {
+        user:       reviewer2,
+        contentIdx: 1,
+        rating:     4,
+        reviewText: "Quietly brilliant. Not the kind of story that grabs you immediately, but by chapter three I was completely invested. The themes of memory and identity are handled with real nuance.",
+      },
+      // Third content item (if it exists)
+      ...(allContent.length > 2 ? [
+        {
+          user:       reviewer3,
+          contentIdx: 2,
+          rating:     3,
+          reviewText: "Interesting premise but the execution is a bit uneven. The first act is genuinely compelling, but the story struggles to maintain that energy throughout. Still worth a read if you enjoy this genre.",
+        },
+        {
+          user:       demoUser,
+          contentIdx: 2,
+          rating:     5,
+          reviewText: "A hidden gem. Underrated and deserves far more attention. The writing is confident and economical, the plot moves at exactly the right pace, and the characters feel like real people. Highly recommended.",
+        },
+      ] : []),
+    ];
+
+    let reviewsCreated = 0;
+
+    for (const seed of reviewSeeds) {
+      const targetContent = allContent[seed.contentIdx];
+      if (!targetContent) continue;
+
+      // Upsert so reseed is idempotent
+      await prisma.review.upsert({
+        where:  { contentId_userId: { contentId: targetContent.id, userId: seed.user.id } },
+        update: { rating: seed.rating, reviewText: seed.reviewText },
+        create: {
+          contentId:  targetContent.id,
+          userId:     seed.user.id,
+          rating:     seed.rating,
+          reviewText: seed.reviewText,
+          echoCount:  0,
+        },
+      });
+      reviewsCreated++;
+    }
+
+    // Add some echo reactions (reviewer2 echoes devUser's reviews)
+    const devReviews = await prisma.review.findMany({ where: { userId: devUser.id } });
+    for (const review of devReviews) {
+      await prisma.reviewReaction.upsert({
+        where:  { reviewId_userId: { reviewId: review.id, userId: reviewer2.id } },
+        update: {},
+        create: { reviewId: review.id, userId: reviewer2.id },
+      });
+      await prisma.reviewReaction.upsert({
+        where:  { reviewId_userId: { reviewId: review.id, userId: reviewer3.id } },
+        update: {},
+        create: { reviewId: review.id, userId: reviewer3.id },
+      });
+      // Update echoCount denormalized field
+      const echoCount = await prisma.reviewReaction.count({ where: { reviewId: review.id } });
+      await prisma.review.update({ where: { id: review.id }, data: { echoCount } });
+    }
+
+    // Recalculate and persist denormalized aggregates on each Content record
+    for (const content of allContent) {
+      const agg = await prisma.review.aggregate({
+        where:   { contentId: content.id },
+        _avg:    { rating: true },
+        _count:  { id: true },
+      });
+      const reviewCount = await prisma.review.count({ where: { contentId: content.id } });
+      const avg = agg._avg.rating;
+      await prisma.content.update({
+        where: { id: content.id },
+        data:  {
+          averageRating: avg !== null ? Math.round(avg * 10) / 10 : null,
+          ratingCount:   agg._count.id,
+          reviewCount,
+        },
+      });
+    }
+
+    console.info(`Seeded ${reviewsCreated} reviews with aggregate ratings updated on ${allContent.length} content records`);
+  } else {
+    console.info("No content found — skipping review seed (run reseed.mjs first)");
+  }
+
   console.info("Seed complete.");
 }
 

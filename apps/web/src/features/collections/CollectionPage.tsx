@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Sparkles, Library } from 'lucide-react';
 import { useCollection } from '../../hooks/useCollections';
 import { useLibrary } from '../../hooks/useLibrary.js';
+import { useUser } from '../../hooks/useUser.js';
+import { useAuthStore } from '../auth/store/useAuthStore';
 import type { ContentType } from '@arcanium/types';
 import BookDetailModal from '../../components/shared/BookDetailModal';
 
@@ -29,6 +31,8 @@ export default function CollectionPage() {
   const navigate                   = useNavigate();
   const { data: collection, isLoading, isError } = useCollection(slug ?? null);
   const { addBook, isInLibrary }   = useLibrary();
+  const { user } = useUser();
+  const { isAuthenticated } = useAuthStore();
   const [selected, setSelected]    = useState<null | object>(null);
 
   // Loading state
@@ -164,6 +168,8 @@ export default function CollectionPage() {
           onClose={() => setSelected(null)}
           onAddToLibrary={b => addBook(b as never)}
           isInLibrary={isInLibrary((selected as { id: string }).id)}
+          isAuthenticated={isAuthenticated}
+          userId={user.id}
         />
       )}
     </div>

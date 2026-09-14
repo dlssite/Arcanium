@@ -9,6 +9,7 @@ import { ContentPage } from './pages/ContentPage';
 import { CreatorsPage } from './pages/CreatorsPage';
 import { LiberAnalyticsPage } from './pages/LiberAnalyticsPage';
 import { FeatureFlagsPage } from './pages/FeatureFlagsPage';
+import { ReviewsPage } from './pages/ReviewsPage';
 
 import { HonorsPage } from './pages/HonorsPage';
 import { CollectionsPage } from './pages/CollectionsPage';
@@ -24,6 +25,7 @@ export const App: React.FC = () => {
             <Route path="users" element={<UsersPage />} />
             <Route path="content" element={<ContentPage />} />
             <Route path="creators" element={<CreatorsPage />} />
+            <Route path="reviews" element={<ReviewsPage />} />
             <Route path="ai-liber" element={<LiberAnalyticsPage />} />
             <Route path="honors" element={<HonorsPage />} />
             <Route path="collections" element={<CollectionsPage />} />

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Award,
   Library,
+  MessageSquare,
 } from 'lucide-react';
 import { useAdminStore } from '../../stores/adminStore';
 import { useCreatorVerification } from '../../hooks/useCreatorVerification';
@@ -46,6 +47,11 @@ export const Sidebar: React.FC = () => {
       path: '/creators',
       icon: <Feather className="w-5 h-5 shrink-0" />,
       badge: pendingCount > 0 ? pendingCount : undefined,
+    },
+    {
+      label: 'Reviews',
+      path: '/reviews',
+      icon: <MessageSquare className="w-5 h-5 shrink-0" />,
     },
     {
       label: 'AI Liber Analytics',

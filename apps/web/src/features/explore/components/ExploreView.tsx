@@ -7,6 +7,8 @@ import {
 import type { ContentType } from '@arcanium/types';
 import { useExploreStore } from '../../../stores/useExploreStore.js';
 import { useLibrary } from '../../../hooks/useLibrary.js';
+import { useUser } from '../../../hooks/useUser.js';
+import { useAuthStore } from '../../auth/store/useAuthStore';
 import { useContentQuery, useCatalogueCountsQuery, useFeaturedQuery } from '../useContentQuery';
 import { useCategoriesQuery } from '../../../hooks/useCategoriesQuery';
 import { useFeaturedSections } from '../../../hooks/useFeaturedSections';
@@ -43,6 +45,8 @@ function BookCardSkeleton() {
 export default function ExploreView() {
   const explore  = useExploreStore();
   const { addBook, isInLibrary } = useLibrary();
+  const { user } = useUser();
+  const { isAuthenticated } = useAuthStore();
   const [activeGenre, setActiveGenre] = React.useState('All');
 
   // ── Search state ─────────────────────────────────────────────────────────
@@ -426,6 +430,8 @@ export default function ExploreView() {
           onRead={() => explore.clearSelection()}
           onAddToLibrary={(book: unknown) => { addBook(book as object); explore.clearSelection(); }}
           isInLibrary={isInLibrary(explore.selectedBook.id)}
+          isAuthenticated={isAuthenticated}
+          userId={user.id}
         />
       )}
     </div>

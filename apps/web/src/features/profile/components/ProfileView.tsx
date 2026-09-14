@@ -24,6 +24,7 @@ import {
 import BookDetailModal from '../../../components/shared/BookDetailModal.tsx';
 import { useUser } from '../../../hooks/useUser.js';
 import { useLibrary } from '../../../hooks/useLibrary.js';
+import { useAuthStore } from '../../auth/store/useAuthStore';
 import { LIBRARY_FILTER_TABS } from '../../../mocks/mockData.js';
 import { useLogout } from '../../../AppRouter.tsx';
 
@@ -39,6 +40,7 @@ export default function ProfileView() {
 
   const { user, stats, badges } = useUser();
   const { filteredBooks, filterCounts, activeFilter, setFilter, libraryBooks, addBook, removeBook, isInLibrary, isLoading } = useLibrary();
+  const { isAuthenticated } = useAuthStore();
   const logout = useLogout();
 
   const unlockedCount = badges.filter((b) => b.unlocked).length;
@@ -503,6 +505,8 @@ export default function ProfileView() {
             removeBook(String(book.id));
             setSelectedBook(null);
           }}
+          isAuthenticated={isAuthenticated}
+          userId={user.id}
         />
       )}
     </div>

@@ -94,6 +94,8 @@ model User {
   createdContent    Content[]           @relation("CreatorContent")
   creatorApplications CreatorApplication[] @relation("CreatorApplications")
   moderatedContent  ModeratedContent[]  @relation("ModeratedAuthor")
+  reviews           Review[]            @relation("UserReviews")
+  reviewReactions   ReviewReaction[]    @relation("UserReviewReactions")
 
   @@index([email])
 }
@@ -146,18 +148,25 @@ model Content {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  chapters        Chapter[]
-  shelfEntries    ShelfEntry[]
-  readingProgress ReadingProgress[]
-  moderatedContent ModeratedContent[] @relation("ModeratedContent")
-  featuredIn      FeaturedSection[]
+  chapters          Chapter[]
+  shelfEntries      ShelfEntry[]
+  readingProgress   ReadingProgress[]
+  moderatedContent  ModeratedContent[] @relation("ModeratedContent")
+  featuredIn        FeaturedSection[]
   collectionEntries CollectionEntry[]
+  reviews           Review[]          @relation("ContentReviews")
+  
+  // Denormalized aggregate rating (cached for performance)
+  averageRating     Float?            // null = no reviews yet
+  ratingCount       Int               @default(0)
+  reviewCount       Int               @default(0)
 
   @@index([type])
   @@index([source])
   @@index([creatorId])
   @@index([sourceSite, sourceUrl])
   @@index([slug])
+  @@index([averageRating])
 }
 
 // ---------------------------------------------------------------------------
@@ -610,4 +619,52 @@ model CollectionEntry {
 
   @@unique([collectionId, contentId])
   @@index([collectionId, sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// BOOK REVIEWS & RATINGS
+// Catalog-level feature: users rate and review books they've read.
+// Reviews are tied to Content records (not chapters or community circles).
+// ---------------------------------------------------------------------------
+
+model Review {
+  id         String   @id @default(cuid())
+  contentId  String
+  content    Content  @relation("ContentReviews", fields: [contentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Star rating (1-5 stars)
+  rating     Int      // validated 1..5 in Zod + application layer
+  
+  // Optional written reflection (50-2000 characters if provided)
+  reviewText String?  @db.Text
+  
+  // Engagement metric: how many users found this review helpful
+  echoCount  Int      @default(0)
+  
+  // Timestamps
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // Relations
+  echoes     ReviewReaction[] @relation("ReviewEchoes")
+  
+  @@unique([contentId, userId]) // 1 review per user per book (can update existing)
+  @@index([contentId, createdAt])
+  @@index([userId])
+  @@index([rating])
+}
+
+model ReviewReaction {
+  id        String   @id @default(cuid())
+  reviewId  String
+  review    Review   @relation("ReviewEchoes", fields: [reviewId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("UserReviewReactions", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  
+  @@unique([reviewId, userId]) // 1 echo per user per review (toggle on/off)
+  @@index([reviewId])
+  @@index([userId])
 }

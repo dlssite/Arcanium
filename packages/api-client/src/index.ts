@@ -100,6 +100,15 @@ import type {
   CreatorChapterSummary,
   IngestContentInput,
   CreatorApplicationInput,
+  ReviewListResponse,
+  ReviewCreateResponse,
+  ReviewDeleteResponse,
+  ReviewInput,
+  ReviewQuery,
+  EchoToggleResponse,
+  AdminReviewsListResponse,
+  AdminReviewQuery,
+  AdminReviewAnalytics,
 } from '@arcanium/types';
 
 export const authApi = {
@@ -228,6 +237,50 @@ function buildQs(params?: Record<string, string | number | boolean | undefined>)
   if (entries.length === 0) return '';
   return '?' + new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString();
 }
+
+// ---------------------------------------------------------------------------
+// Reviews & Ratings API
+// ---------------------------------------------------------------------------
+
+export const reviewApi = {
+  /** GET /api/v1/content/:slug/reviews — list reviews for a book */
+  list: (slug: string, params?: Partial<ReviewQuery>) => {
+    const qs = buildQs(params as Record<string, string | number | boolean | undefined>);
+    return apiClient.get<ReviewListResponse>(`/api/v1/content/${slug}/reviews${qs}`);
+  },
+
+  /** POST /api/v1/content/:slug/reviews — create or update user's review */
+  createOrUpdate: (slug: string, body: ReviewInput) =>
+    apiClient.post<ReviewCreateResponse>(`/api/v1/content/${slug}/reviews`, body),
+
+  /** DELETE /api/v1/content/:slug/reviews — delete user's own review */
+  delete: (slug: string) =>
+    apiClient.delete<ReviewDeleteResponse>(`/api/v1/content/${slug}/reviews`),
+
+  /** POST /api/v1/reviews/:reviewId/echo — toggle echo on a review */
+  toggleEcho: (reviewId: string) =>
+    apiClient.post<EchoToggleResponse>(`/api/v1/reviews/${reviewId}/echo`),
+};
+
+// ---------------------------------------------------------------------------
+// Admin Reviews API
+// ---------------------------------------------------------------------------
+
+export const adminReviewApi = {
+  /** GET /api/v1/admin/reviews — list all reviews with filters */
+  list: (params?: Partial<AdminReviewQuery>) =>
+    apiClient.get<AdminReviewsListResponse>(`/api/v1/admin/reviews${buildQs(params)}`),
+
+  /** DELETE /api/v1/admin/reviews/:reviewId — delete a review */
+  delete: (reviewId: string) =>
+    apiClient.delete<{ deleted: boolean; reviewId: string }>(
+      `/api/v1/admin/reviews/${reviewId}`,
+    ),
+
+  /** GET /api/v1/admin/reviews/analytics — review statistics */
+  getAnalytics: () =>
+    apiClient.get<AdminReviewAnalytics>('/api/v1/admin/reviews/analytics'),
+};
 
 // ---------------------------------------------------------------------------
 // Admin types (lightweight — full types live in @arcanium/types)

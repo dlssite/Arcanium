@@ -156,6 +156,7 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
   const navigate = useNavigate();
   const { user, dailyGoal, hasUnreadNotifications } = useUser();
   const { currentlyReading, addBook, isInLibrary }  = useLibrary();
+  const { isAuthenticated } = useAuthStore();
   const nowReading = currentlyReading as LibraryBook | null;
 
   // Creator application state — drives BecomeAuthorCard behaviour
@@ -802,6 +803,8 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
             setSelectedBook(null);
           }}
           isInLibrary={isInLibrary(selectedBook.id)}
+          isAuthenticated={isAuthenticated}
+          userId={user.id}
         />
       )}
 

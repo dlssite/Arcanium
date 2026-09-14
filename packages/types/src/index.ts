@@ -7,3 +7,4 @@ export * from './companion.js';
 export * from './api.js';
 export * from './community.js';
 export * from './creator.js';
+export * from './review.js';

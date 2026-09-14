@@ -13,18 +13,16 @@ import {
 } from 'lucide-react';
 import { useAdminStats } from '../hooks/useAdminStats';
 import { useScrapers } from '../hooks/useScrapers';
-import { useAdminStore } from '../stores/adminStore';
+import { useCreatorVerification } from '../hooks/useCreatorVerification';
 import { Card, CardHeader, Badge, Button } from '../components/ui';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { stats, activities, activityLoading } = useAdminStats();
   const { parsers, scrapersLoading } = useScrapers();
-  const creators = useAdminStore((s) => s.creators);
+  const { pendingCount: pendingCreators } = useCreatorVerification();
 
   const [activityFilter, setActivityFilter] = useState<'ALL' | 'USER' | 'CREATOR' | 'FLAG' | 'CONTENT' | 'AI'>('ALL');
-
-  const pendingCreators = creators.filter((c) => c.status === 'PENDING').length;
   const filteredActivities = activities.filter((a) =>
     activityFilter === 'ALL' ? true : a.type === activityFilter
   );

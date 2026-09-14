@@ -12,12 +12,13 @@ import { useNavigate } from 'react-router-dom';
 import { Badge } from '../ui';
 import { useAdminStore } from '../../stores/adminStore';
 import { useAdminAuthStore } from '../../stores/useAdminAuthStore';
+import { useAdminStats } from '../../hooks/useAdminStats';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
   const [showHealthModal, setShowHealthModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const activities = useAdminStore((s) => s.activities);
+  const { activities } = useAdminStats();
   const theme = useAdminStore((s) => s.theme);
   const toggleTheme = useAdminStore((s) => s.toggleTheme);
   const logout = useAdminAuthStore((s) => s.logout);

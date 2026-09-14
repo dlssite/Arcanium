@@ -1,6 +1,8 @@
 ﻿import React, { useState } from 'react';
 import { Clock } from 'lucide-react';
 import { useLibrary } from '../../../hooks/useLibrary.js';
+import { useUser } from '../../../hooks/useUser.js';
+import { useAuthStore } from '../../auth/store/useAuthStore';
 import { LIBRARY_FILTER_TABS } from '../../../mocks/mockData.js';
 import BookDetailModal from '../../../components/shared/BookDetailModal';
 import type { LibraryBook } from '../useLibraryQuery';
@@ -10,6 +12,9 @@ export default function LibraryView() {
     filteredBooks, filterCounts, activeFilter, setFilter,
     libraryBooks, isLoading, removeBook, isInLibrary,
   } = useLibrary();
+
+  const { user } = useUser();
+  const { isAuthenticated } = useAuthStore();
 
   const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);
 
@@ -160,6 +165,8 @@ export default function LibraryView() {
             removeBook(String(selectedBook.id));
             setSelectedBook(null);
           }}
+          isAuthenticated={isAuthenticated}
+          userId={user.id}
         />
       )}
     </div>
