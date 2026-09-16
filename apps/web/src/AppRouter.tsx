@@ -22,6 +22,8 @@ const ChapterManager   = lazy(() => import('./features/creator/components/Chapte
 // Circles — own routes, lazy-loaded separate chunks
 const CirclesDirectory = lazy(() => import('./features/circles/components/CirclesDirectory'));
 const CircleDetailView = lazy(() => import('./features/circles/components/CircleDetailView'));
+// Connect — public facing connect page
+const ConnectPage = lazy(() => import('./pages/ConnectPage'));
 // Reader — own route outside the AppShell layout (full-screen, no nav chrome)
 const ReaderView    = lazy(() => import('./features/reader/components/ReaderView'));
 
@@ -122,4 +124,5 @@ export {
   ChapterManager,
   CirclesDirectory,
   CircleDetailView,
+  ConnectPage,
 };

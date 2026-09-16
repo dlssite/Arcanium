@@ -237,6 +237,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
   }
 
   // Compute archiveLevel (1–5) from combined activity score
+  // DEPRECATED — using XP ranks instead, kept for backwards compatibility
   const activityScore = completedCount * 3 + Math.floor(totalHoursLogged) + readingStreak;
   const archiveLevel =
     activityScore >= 200 ? 5
@@ -252,14 +253,14 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     data: {
       ...user,
       googleId: null,
-      archiveLevel,
+      // archiveLevel REMOVED — use xp.rank instead
       role: user.role,
       creatorApplicationStatus: latestApplication?.status ?? null,
       stats,
       badges: mergedBadges,
       xp: {
         total:       totalXp,
-        rank,
+        rank:        rank,         // "Wandering Scribe", "Ink-Stained Apprentice", etc.
         nextRank,
         xpIntoLevel,
         xpNeeded,

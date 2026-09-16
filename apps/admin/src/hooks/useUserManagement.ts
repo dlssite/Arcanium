@@ -22,7 +22,7 @@ function toAdminUser(u: any): AdminUser {
     totalReadingHours: u.totalReadingHours ?? 0,
     shelfCount:        u.shelfCount        ?? 0,
     booksRead:         u.booksRead         ?? 0,
-    archiveLevel:      u.archiveLevel      ?? 1,
+    totalXp:           u.totalXp           ?? 0,
     joinedAt:          u.joinedAt,
     lastActiveAt:      u.lastActiveAt,
     emailVerified:     u.emailVerified     ?? true,

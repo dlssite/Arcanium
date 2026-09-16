@@ -16,6 +16,7 @@ import { CollectionsPage } from './pages/CollectionsPage';
 import { DefaultAvatarsPage } from './pages/DefaultAvatarsPage';
 import { RanksPage } from './pages/RanksPage';
 import { CirclesPage } from './pages/CirclesPage';
+import ConnectPage from './pages/ConnectPage';
 
 export const App: React.FC = () => {
   return (
@@ -35,6 +36,7 @@ export const App: React.FC = () => {
             <Route path="avatars"     element={<DefaultAvatarsPage />} />
             <Route path="ranks"       element={<RanksPage />} />
             <Route path="circles"     element={<CirclesPage />} />
+            <Route path="connect"     element={<ConnectPage />} />
             <Route path="settings"    element={<FeatureFlagsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

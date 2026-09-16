@@ -16,6 +16,7 @@ import {
   ImageIcon,
   Trophy,
   CircleDot,
+  Link2,
 } from 'lucide-react';
 import { useAdminStore } from '../../stores/adminStore';
 import { useCreatorVerification } from '../../hooks/useCreatorVerification';
@@ -85,6 +86,11 @@ export const Sidebar: React.FC = () => {
       label: 'Ranks & XP',
       path: '/ranks',
       icon: <Trophy className="w-5 h-5 shrink-0 text-amber-500 dark:text-amber-400" />,
+    },
+    {
+      label: 'Connect Cards',
+      path: '/connect',
+      icon: <Link2 className="w-5 h-5 shrink-0 text-blue-500 dark:text-blue-400" />,
     },
     {
       label: 'Feature Flags',

@@ -19,6 +19,8 @@ export { getRecommendationsDefinition, getRecommendationsArgsSchema, executeGetR
 export { fetchBookDetailsDefinition, fetchBookDetailsArgsSchema, executeFetchBookDetails } from './fetch-book-details.tool.js';
 export { getChapterPassageDefinition, getChapterPassageArgsSchema, executeGetChapterPassage } from './get-chapter-passage.tool.js';
 export { setReadingGoalDefinition, setReadingGoalArgsSchema, executeSetReadingGoal } from './set-reading-goal.tool.js';
+export { recommendCirclesDefinition, recommendCirclesArgsSchema, executeRecommendCircles } from './recommend-circles.tool.js';
+export { getCollectionBooksDefinition, getCollectionBooksArgsSchema, executeGetCollectionBooks } from './get-collection-books.tool.js';
 
 import { searchContentDefinition } from './search-content.tool.js';
 import { addToShelfDefinition } from './add-to-shelf.tool.js';
@@ -29,6 +31,8 @@ import { getRecommendationsDefinition } from './get-recommendations.tool.js';
 import { fetchBookDetailsDefinition } from './fetch-book-details.tool.js';
 import { getChapterPassageDefinition } from './get-chapter-passage.tool.js';
 import { setReadingGoalDefinition } from './set-reading-goal.tool.js';
+import { recommendCirclesDefinition } from './recommend-circles.tool.js';
+import { getCollectionBooksDefinition } from './get-collection-books.tool.js';
 import type { ToolDefinition } from '../providers/index.js';
 
 /** All tool definitions — passed as the `tools` array to the AI provider. */
@@ -42,4 +46,6 @@ export const ALL_TOOL_DEFINITIONS: ToolDefinition[] = [
   fetchBookDetailsDefinition,
   getChapterPassageDefinition,
   setReadingGoalDefinition,
+  recommendCirclesDefinition,
+  getCollectionBooksDefinition,
 ];

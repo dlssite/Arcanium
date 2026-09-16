@@ -240,6 +240,19 @@ export const categoriesApi = {
   list: () => apiClient.get<Category[]>('/api/v1/categories'),
 };
 
+export const connectApi = {
+  /** GET /api/v1/connect — returns enabled connect cards */
+  list: () => apiClient.get<{
+    id: string;
+    title: string;
+    description: string | null;
+    url: string;
+    iconName: string | null;
+    category: 'COMMUNITY' | 'SPONSOR' | 'SOCIAL' | 'OTHER';
+    displayOrder: number;
+  }[]>('/api/v1/connect'),
+};
+
 export const communityApi = {
   /** GET /api/v1/community/overview — circles + posts + challenge */
   getOverview: () =>

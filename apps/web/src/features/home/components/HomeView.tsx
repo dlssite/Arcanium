@@ -237,7 +237,7 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
                 <span className="text-xs font-semibold text-[#DE9B35]">Days</span>
               </div>
               <p className="text-[10px] text-[#80778B] dark:text-[#9F94AC] uppercase font-semibold tracking-wider">
-                {user.archiveLevelTitle ?? 'Active Streak'}
+                {user.xp?.rank?.title || 'Active Streak'}
               </p>
             </div>
           </div>

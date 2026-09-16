@@ -26,6 +26,7 @@ import {
   ChapterManager,
   CirclesDirectory,
   CircleDetailView,
+  ConnectPage,
 } from './AppRouter.tsx';
 // ── Loading fallback (shown while a lazy chunk is fetching) ──────────────────
 
@@ -78,6 +79,7 @@ export default function App() {
     if (p.startsWith('/liber'))      return 'liber';
     if (p.startsWith('/community'))  return 'community';
     if (p.startsWith('/circles'))    return 'circles';
+    if (p.startsWith('/connect'))    return 'connect';
     if (p.startsWith('/profile'))    return 'profile';
     if (p.startsWith('/collection')) return 'collection';
     if (p.startsWith('/creator'))    return 'creator';
@@ -98,6 +100,7 @@ export default function App() {
       liber:     '/liber',
       community: '/community',
       circles:   '/circles',
+      connect:   '/connect',
       profile:   '/profile',
       creator:   '/creator',
     };
@@ -159,6 +162,7 @@ export default function App() {
                 <Route path="/collection/:slug" element={<Suspense fallback={<ViewLoader />}><CollectionPage /></Suspense>} />
                 <Route path="/circles"           element={features.circles ? <Suspense fallback={<ViewLoader />}><CirclesDirectory /></Suspense> : <Navigate to="/community" replace />} />
                 <Route path="/circles/:circleId" element={features.circles ? <Suspense fallback={<ViewLoader />}><CircleDetailView /></Suspense>  : <Navigate to="/community" replace />} />
+                <Route path="/connect"           element={<Suspense fallback={<ViewLoader />}><ConnectPage /></Suspense>} />
                 <Route path="*"          element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
@@ -201,6 +205,7 @@ export default function App() {
               <Route path="/collection/:slug" element={<Suspense fallback={<ViewLoader />}><CollectionPage /></Suspense>} />
               <Route path="/circles"           element={features.circles ? <Suspense fallback={<ViewLoader />}><CirclesDirectory /></Suspense> : <Navigate to="/community" replace />} />
               <Route path="/circles/:circleId" element={features.circles ? <Suspense fallback={<ViewLoader />}><CircleDetailView /></Suspense>  : <Navigate to="/community" replace />} />
+              <Route path="/connect"           element={<Suspense fallback={<ViewLoader />}><ConnectPage /></Suspense>} />
               <Route path="*"          element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

@@ -45,6 +45,11 @@ import {
   adminRejectCircleRequest,
   getCircleConfig,
   updateCircleConfig,
+  adminListConnectCards,
+  adminCreateConnectCard,
+  adminUpdateConnectCard,
+  adminDeleteConnectCard,
+  adminReorderConnectCards,
 } from '../services/admin.service.js';
 
 export const adminRouter: Router = Router();
@@ -359,3 +364,22 @@ adminRouter.get('/circle-config',  getCircleConfig);
 
 /** PATCH /api/v1/admin/circle-config */
 adminRouter.patch('/circle-config', updateCircleConfig);
+
+// ---------------------------------------------------------------------------
+// Connect Cards — admin CRUD
+// ---------------------------------------------------------------------------
+
+/** GET    /api/v1/admin/connect-cards */
+adminRouter.get('/connect-cards',           adminListConnectCards);
+
+/** POST   /api/v1/admin/connect-cards */
+adminRouter.post('/connect-cards',          adminCreateConnectCard);
+
+/** PATCH  /api/v1/admin/connect-cards/:id */
+adminRouter.patch('/connect-cards/:id',     adminUpdateConnectCard);
+
+/** DELETE /api/v1/admin/connect-cards/:id */
+adminRouter.delete('/connect-cards/:id',    adminDeleteConnectCard);
+
+/** POST   /api/v1/admin/connect-cards/reorder */
+adminRouter.post('/connect-cards/reorder',  adminReorderConnectCards);

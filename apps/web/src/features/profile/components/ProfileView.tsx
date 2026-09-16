@@ -172,7 +172,7 @@ export default function ProfileView() {
                     }`}
                     title={hasCheck ? `Day ${daysAgo + 1}${isToday ? ' (Today)' : ''}` : 'No reading'}
                   >
-                    {hasCheck ? <Check className="w-3.5 h-3.5" /> : '·'}
+                    {hasCheck ? <Check className="w-3.5 h-3.5" /> : <X className="w-3 h-3" />}
                   </div>
                   <span className="text-[10px] text-[#9D93A5] dark:text-[#7A6F87] font-medium">{day}</span>
                 </div>
@@ -180,7 +180,7 @@ export default function ProfileView() {
             })}
           </div>
 
-          {/* XP Rank Card */}
+          {/* XP Rank Card — called "Archival Rank" in UI */}
           {(user as any).xp && (user as any).xp.rank && (() => {
             const xp = (user as any).xp;
             const pct: number = xp.progressPct ?? 0;
@@ -300,10 +300,10 @@ export default function ProfileView() {
             </div>
             <div className="bg-[#FAF8F5] dark:bg-[#251D30] rounded-2xl p-2.5 sm:p-3 text-center border border-[#ECE7DF] dark:border-[#382C48]">
               <span className="text-lg sm:text-xl font-bold font-serif text-[#43335A] dark:text-[#FFDE88]">
-                {stats.archiveRank}
+                {user.xp?.rank?.title || 'Wandering Scribe'}
               </span>
               <span className="block text-[9.5px] sm:text-[10px] text-[#80778B] dark:text-[#9F94AC] uppercase font-semibold mt-0.5">
-                Archive Rank
+                Archival Rank
               </span>
             </div>
           </div>
@@ -560,7 +560,7 @@ export default function ProfileView() {
                     Archival Honors & Milestone Badges
                   </h3>
                   <p className="text-xs text-[#80778B] dark:text-[#9F94AC] mt-0.5">
-                    {unlockedCount} of {badges.length} Unlocked • {user.displayName} ({user.archiveLevelTitle})
+                    {unlockedCount} of {badges.length} Unlocked • {user.displayName} ({user.xp?.rank?.title || 'Wandering Scribe'})
                   </p>
                 </div>
               </div>

@@ -19,6 +19,10 @@ import {
   executeGetChapterPassage,
   setReadingGoalArgsSchema,
   executeSetReadingGoal,
+  recommendCirclesArgsSchema,
+  executeRecommendCircles,
+  getCollectionBooksArgsSchema,
+  executeGetCollectionBooks,
 } from './tools/index.js';
 
 export interface ExecutedAction {
@@ -100,6 +104,16 @@ export async function executeTool(
       if (Array.isArray((r as { updatedEntities?: string[] }).updatedEntities)) {
         updatedEntities = (r as { updatedEntities: string[] }).updatedEntities;
       }
+      break;
+    }
+    case 'recommend_circles': {
+      const args = recommendCirclesArgsSchema.parse(call.arguments);
+      result = await executeRecommendCircles(args, userId);
+      break;
+    }
+    case 'get_collection_books': {
+      const args = getCollectionBooksArgsSchema.parse(call.arguments);
+      result = await executeGetCollectionBooks(args);
       break;
     }
     default:

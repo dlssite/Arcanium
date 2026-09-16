@@ -13,10 +13,12 @@
  * @property {string} email
  * @property {string} displayName
  * @property {string|null} avatarUrl
- * @property {number} archiveLevel       - 1–5, computed from reading activity
- * @property {string} archiveLevelTitle  - e.g. "Level 4 Scholar Archivist"
  * @property {number} readingStreak      - Consecutive days read
  * @property {string} createdAt
+ * @property {Object} xp                 - XP and rank info
+ * @property {number} xp.total           - Total XP earned
+ * @property {string} xp.rank            - Current rank title (e.g., "Wandering Scribe")
+ * @property {string|null} xp.nextRank   - Next rank title or null if max rank
  */
 
 /**

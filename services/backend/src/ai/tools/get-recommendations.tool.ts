@@ -40,12 +40,59 @@ export async function executeGetRecommendations(
   });
   const ownedIds = ownedEntries.map((e: { contentId: string }) => e.contentId);
 
-  // Load user preferences from AiMemory
-  const memory = await prisma.aiMemory.findUnique({ where: { userId } });
+  // Load user preferences and recent mood history from AiMemory
+  const [memory, recentMoods, recentProgress] = await Promise.all([
+    prisma.aiMemory.findUnique({ where: { userId } }),
+    prisma.aiMoodEntry.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: { mood: true, recommendations: true },
+    }),
+    prisma.readingProgress.findMany({
+      where: { userId, status: { in: ['COMPLETED', 'READING'] } },
+      orderBy: { lastReadAt: 'desc' },
+      take: 10,
+      include: { content: { select: { type: true, metadata: true } } },
+    }),
+  ]);
+
   const preferences = (memory?.preferences ?? {}) as Record<string, unknown>;
   const preferredGenres = Array.isArray(preferences['genres'])
     ? (preferences['genres'] as string[])
     : [];
+
+  // Extract genres from recently read content for pattern detection
+  const recentGenres = recentProgress
+    .flatMap((p) => {
+      const meta = p.content.metadata as Record<string, unknown> | null;
+      return Array.isArray(meta?.['genres']) ? (meta['genres'] as string[]) : [];
+    })
+    .filter((g, i, arr) => arr.indexOf(g) === i); // unique
+
+  // Combine preferred + recent genres, weight preferred higher
+  const allGenres = [...preferredGenres, ...recentGenres];
+
+  // Build mood-based filter hints
+  const moodKeywords: Record<string, string[]> = {
+    adventurous: ['adventure', 'action', 'quest'],
+    cozy: ['slice of life', 'wholesome', 'comfort'],
+    'emotionally-heavy': ['drama', 'tragedy', 'psychological'],
+    funny: ['comedy', 'parody', 'humor'],
+    'fast-paced': ['action', 'thriller', 'adventure'],
+    'slow-burn': ['romance', 'drama', 'slice of life'],
+    'mind-bending': ['psychological', 'mystery', 'sci-fi'],
+    nostalgic: ['slice of life', 'coming of age'],
+    escapist: ['fantasy', 'isekai', 'adventure'],
+    dark: ['horror', 'dark fantasy', 'thriller'],
+    light: ['comedy', 'slice of life', 'wholesome'],
+    romantic: ['romance', 'shoujo', 'josei'],
+    'action-packed': ['action', 'shounen', 'adventure'],
+    philosophical: ['psychological', 'drama', 'sci-fi'],
+    'comfort-read': ['slice of life', 'wholesome', 'comedy'],
+  };
+
+  const moodGenres = args.mood ? (moodKeywords[args.mood.toLowerCase()] ?? []) : [];
 
   // Query catalogue — exclude owned, filter by type if specified
   const candidates = await prisma.content.findMany({
@@ -54,7 +101,7 @@ export async function executeGetRecommendations(
       ...(args.contentType ? { type: args.contentType } : {}),
     },
     orderBy: [{ rating: 'desc' }, { chapterCount: 'desc' }],
-    take: args.limit * 3, // fetch extra to allow genre scoring
+    take: args.limit * 5, // fetch extra for scoring
     select: {
       id: true,
       title: true,
@@ -69,14 +116,28 @@ export async function executeGetRecommendations(
     },
   });
 
-  // Score by genre match if user has preferences
+  // Score by: genre match + mood match + rating
   const scored = candidates
     .map((c) => {
       const genres = Array.isArray((c.metadata as Record<string, unknown>)?.['genres'])
         ? ((c.metadata as Record<string, unknown>)['genres'] as string[])
         : [];
-      const genreMatch = preferredGenres.filter((g: string) => genres.includes(g)).length;
-      return { ...c, _score: genreMatch + (c.rating ?? 0) };
+      
+      // Genre preference match
+      const genreMatch = allGenres.filter((g: string) => 
+        genres.some((cg) => cg.toLowerCase().includes(g.toLowerCase()))
+      ).length;
+
+      // Mood-based genre match
+      const moodMatch = args.mood 
+        ? moodGenres.filter((mg) => 
+            genres.some((cg) => cg.toLowerCase().includes(mg.toLowerCase()))
+          ).length * 2 // weight mood higher
+        : 0;
+
+      const ratingBoost = (c.rating ?? 0) * 0.5;
+      
+      return { ...c, _score: genreMatch + moodMatch + ratingBoost };
     })
     .sort((a: { _score: number }, b: { _score: number }) => b._score - a._score)
     .slice(0, args.limit);

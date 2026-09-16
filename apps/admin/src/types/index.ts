@@ -9,11 +9,11 @@ export interface AdminUser {
   avatarUrl?: string;
   role: UserRole;
   status: UserStatus;
+  totalXp?: number; // Added for XP-based rank system
   streakDays: number;
   totalReadingHours: number;
   shelfCount: number;
   booksRead: number;
-  archiveLevel: number;
   joinedAt: string;
   lastActiveAt: string;
   emailVerified: boolean;

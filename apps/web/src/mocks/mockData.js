@@ -401,10 +401,35 @@ export const MOCK_USER = {
   email: 'erin.vance@arcanium.app',
   displayName: 'Erin Vance',
   avatarUrl: avatarImg,
-  archiveLevel: 4,
-  archiveLevelTitle: 'Level 4 Scholar Archivist',
+  bio: null,
+  gender: null,
+  totalXp: 1500,
+  xp: {
+    total: 1500,
+    rank: {
+      level: 3,
+      title: 'Keeper of Pages',
+      xpRequired: 1200,
+      icon: 'Book',
+      colorClass: 'text-lime-600',
+      description: 'Pages are your currency.',
+    },
+    nextRank: {
+      level: 4,
+      title: 'Lore Seeker',
+      xpRequired: 2500,
+      icon: 'Search',
+      colorClass: 'text-cyan-500',
+      description: 'Driven by insatiable curiosity.',
+    },
+    xpIntoLevel: 300,
+    xpNeeded: 1300,
+    progressPct: 23,
+  },
   readingStreak: 28,
   createdAt: '2026-01-01T00:00:00.000Z',
+  role: 'USER',
+  creatorApplicationStatus: null,
 };
 
 /**
@@ -525,14 +550,9 @@ export const MOCK_USER_BADGES = [
 export const MOCK_LIBER_INITIAL_MESSAGES = [
   {
     id: 1,
-    sender: 'user',
-    text: "Liber, I'm feeling thoughtful. Recommend a deep story about memory and space.",
-  },
-  {
-    id: 2,
     sender: 'liber',
-    text: "Ah, a deep thought. Based on that mood, I recommend \u2018The Memory Stars\u2019. Shall I read you a passage or add it to your library?",
-    actions: ['Tell me more', 'Add to Library', 'Read passage'],
+    text: "Greetings, Scholar. The celestial library is open. What story or subject shall we explore tonight?",
+    actions: ['Recommend a story', 'Continue reading queue', 'Surprise me'],
   },
 ];
 

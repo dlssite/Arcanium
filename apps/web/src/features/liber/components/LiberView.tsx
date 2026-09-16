@@ -19,6 +19,7 @@ import liberHeroImg from '../../../assets/liber_hero.jpg';
 import { avatarImg, LIBER_VERSION } from '../../../mocks/mockData.js';
 import { useLiberChat } from '../../../hooks/useLiberChat.js';
 import { features } from '../../../config/features.ts';
+import { FormattedMessage } from './FormattedMessage';
 
 export default function LiberView({ onBack }) {
   const chat = useLiberChat();
@@ -190,7 +191,11 @@ export default function LiberView({ onBack }) {
                           : 'bg-[#F3EFEA] dark:bg-[#251D30] text-[#2D223B] dark:text-[#F1ECF7] rounded-tl-sm border border-[#E7E2DA] dark:border-[#3D3050] shadow-xs'
                       }`}
                     >
-                      <p>{msg.text}</p>
+                      {isUser ? (
+                        <p>{msg.text}</p>
+                      ) : (
+                        <FormattedMessage text={msg.text} />
+                      )}
                     </div>
 
                     {/* Action Pills */}

@@ -410,3 +410,38 @@ export async function getFeaturedSections(req: Request, res: Response): Promise<
 
   res.json({ data: grouped, error: null });
 }
+
+
+// ---------------------------------------------------------------------------
+// Connect Cards — public endpoint
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /api/v1/connect
+ * Returns all enabled connect cards, ordered by category and displayOrder
+ */
+export async function getPublicConnectCards(req: Request, res: Response): Promise<void> {
+  try {
+    const cards = await prisma.connectCard.findMany({
+      where: { enabled: true },
+      orderBy: [{ category: 'asc' }, { displayOrder: 'asc' }],
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        url: true,
+        iconName: true,
+        category: true,
+        displayOrder: true,
+      },
+    });
+
+    res.json({ data: cards, error: null });
+  } catch (err) {
+    console.error('[getPublicConnectCards] Error:', err);
+    res.status(500).json({ 
+      data: null, 
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch connect cards' } 
+    });
+  }
+}

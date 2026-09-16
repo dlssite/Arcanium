@@ -298,7 +298,7 @@ function CircleDetailModal({
                   </Badge>
                   {m.role !== 'OWNER' && (
                     <button
-                      onClick={() => removeMember(circleId, m.userId)}
+                      onClick={() => removeMember(circle.id, m.userId)}
                       className="p-1.5 rounded-lg text-[#9E94AB] hover:text-rose-600 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                       title="Remove member"
                     >
@@ -349,14 +349,14 @@ function CircleDetailModal({
                   {r.status === 'PENDING' && (
                     <div className="flex items-center gap-1 shrink-0">
                       <button
-                        onClick={() => approveRequest(circleId, r.id)}
+                        onClick={() => approveRequest(circle.id, r.id)}
                         className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-500/10 transition-colors"
                         title="Approve"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => rejectRequest(circleId, r.id)}
+                        onClick={() => rejectRequest(circle.id, r.id)}
                         className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/10 transition-colors"
                         title="Reject"
                       >

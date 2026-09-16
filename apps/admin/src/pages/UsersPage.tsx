@@ -134,7 +134,7 @@ export const UsersPage: React.FC = () => {
                 <th className="py-3.5 px-4">User</th>
                 <th className="py-3.5 px-4">Role</th>
                 <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4">Archive & Streak</th>
+                <th className="py-3.5 px-4">Streak</th>
                 <th className="py-3.5 px-4">Reading Hours</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
@@ -211,9 +211,6 @@ export const UsersPage: React.FC = () => {
                     {/* Level & Streak */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 font-mono text-[11px]">
-                          Tier {u.archiveLevel}
-                        </span>
                         <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-mono text-[11px]">
                           <Flame className="w-3.5 h-3.5 fill-current" />
                           <span>{u.streakDays}d</span>
@@ -345,9 +342,9 @@ export const UsersPage: React.FC = () => {
               </div>
 
               <div className="p-3 bg-[#FAF7F2] dark:bg-[#120E1C] rounded-lg border border-[#E8E2D8] dark:border-[#2A223D]">
-                <div className="text-[10px] text-[#6D6282] dark:text-[#9E94B3] uppercase font-semibold">Archive Tier</div>
-                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-1">
-                  Tier {inspectModalUser.archiveLevel}
+                <div className="text-[10px] text-[#6D6282] dark:text-[#9E94B3] uppercase font-semibold">Total XP</div>
+                <div className="text-lg font-bold text-purple-600 dark:text-purple-400 font-mono mt-1">
+                  {inspectModalUser.totalXp || 0}
                 </div>
               </div>
             </div>

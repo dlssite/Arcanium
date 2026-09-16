@@ -64,9 +64,8 @@ export const useUserStore = create((set, get) => ({
         gender: apiUser.gender ?? null,
         totalXp: apiUser.totalXp ?? 0,
         xp: apiUser.xp ?? null,
-        archiveLevel: apiUser.archiveLevel ?? state.user.archiveLevel,
+        readingStreak: apiUser.readingStreak ?? state.user.readingStreak,
         createdAt: apiUser.createdAt,
-        archiveLevelTitle: archiveLevelTitle(apiUser.archiveLevel ?? state.user.archiveLevel),
         role: apiUser.role ?? 'USER',
         creatorApplicationStatus: apiUser.creatorApplicationStatus ?? null,
       },
@@ -175,16 +174,5 @@ export const useUserStore = create((set, get) => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers - REMOVED archiveLevelTitle (now using XP ranks)
 // ---------------------------------------------------------------------------
-
-function archiveLevelTitle(level) {
-  const titles = {
-    1: 'Level 1 Apprentice Archivist',
-    2: 'Level 2 Junior Archivist',
-    3: 'Level 3 Archivist',
-    4: 'Level 4 Scholar Archivist',
-    5: 'Level 5 Master Archivist',
-  };
-  return titles[level] ?? 'Archivist';
-}

@@ -106,8 +106,8 @@ function computeReadingStats(progress: { status: string; lastReadAt: Date | null
 /**
  * Maps a Prisma User row to the wire shape the admin UI expects (AdminUser).
  * Derives username from email (part before @) as the DB has no username field.
- * Computes archiveLevel, streakDays, totalReadingHours, booksRead, shelfCount
- * from real activity data.
+ * Computes streakDays, totalReadingHours, booksRead, shelfCount from real activity data.
+ * REMOVED: archiveLevel — now using XP-based ranks instead.
  */
 function serializeAdminUser(
   user: {
@@ -132,13 +132,7 @@ function serializeAdminUser(
 ) {
   const username = user.email.split('@')[0] ?? user.email;
 
-  const activityScore = user.booksRead * 3 + user.totalReadingHours;
-  const archiveLevel  =
-    activityScore >= 200 ? 5
-    : activityScore >= 100 ? 4
-    : activityScore >= 50  ? 3
-    : activityScore >= 20  ? 2
-    : 1;
+  // archiveLevel REMOVED — admin UI will use XP rank instead
 
   return {
     id:                 user.id,
@@ -152,7 +146,7 @@ function serializeAdminUser(
     totalReadingHours:  user.totalReadingHours,
     shelfCount:         user._count.shelves,
     booksRead:          user.booksRead,
-    archiveLevel,
+    // archiveLevel REMOVED
     joinedAt:           user.createdAt.toISOString(),
     lastActiveAt:       user.updatedAt.toISOString(),
     emailVerified:      true,
@@ -2559,4 +2553,213 @@ export async function updateCircleConfig(req: Request, res: Response): Promise<v
   });
 
   res.json({ data: { minRankLevel }, error: null });
+}
+
+// ---------------------------------------------------------------------------
+// Connect Cards — admin CRUD
+// ---------------------------------------------------------------------------
+
+const ConnectCardCategorySchema = z.enum(['COMMUNITY', 'SPONSOR', 'SOCIAL', 'OTHER']);
+
+const CreateConnectCardBodySchema = z.object({
+  title:        z.string().min(1).max(100),
+  description:  z.string().max(500).optional(),
+  url:          z.string().url(),
+  iconName:     z.string().max(50).optional(),
+  category:     ConnectCardCategorySchema,
+  displayOrder: z.number().int().min(0).default(0),
+  enabled:      z.boolean().default(true),
+});
+
+const UpdateConnectCardBodySchema = z.object({
+  title:        z.string().min(1).max(100).optional(),
+  description:  z.string().max(500).optional(),
+  url:          z.string().url().optional(),
+  iconName:     z.string().max(50).optional(),
+  category:     ConnectCardCategorySchema.optional(),
+  displayOrder: z.number().int().min(0).optional(),
+  enabled:      z.boolean().optional(),
+});
+
+const ReorderConnectCardsBodySchema = z.object({
+  items: z.array(z.object({
+    id:           z.string(),
+    displayOrder: z.number().int().min(0),
+  })),
+});
+
+/** GET /api/v1/admin/connect-cards */
+export async function adminListConnectCards(req: Request, res: Response): Promise<void> {
+  try {
+    const category = req.query['category'] as string | undefined;
+    
+    const where: Prisma.ConnectCardWhereInput = {};
+    if (category && category !== 'ALL') {
+      where.category = category as any;
+    }
+
+    const cards = await prisma.connectCard.findMany({
+      where,
+      orderBy: [{ category: 'asc' }, { displayOrder: 'asc' }],
+    });
+
+    res.json({ data: cards, error: null });
+  } catch (err) {
+    console.error('[adminListConnectCards] Error:', err);
+    res.status(500).json({ 
+      data: null, 
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to list connect cards' } 
+    });
+  }
+}
+
+/** POST /api/v1/admin/connect-cards */
+export async function adminCreateConnectCard(req: Request, res: Response): Promise<void> {
+  try {
+    const parsed = CreateConnectCardBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ 
+        data: null, 
+        error: { code: 'VALIDATION_ERROR', message: parsed.error.message } 
+      });
+      return;
+    }
+
+    const card = await prisma.connectCard.create({
+      data: {
+        title: parsed.data.title,
+        description: parsed.data.description ?? null,
+        url: parsed.data.url,
+        iconName: parsed.data.iconName ?? null,
+        category: parsed.data.category,
+        displayOrder: parsed.data.displayOrder,
+        enabled: parsed.data.enabled,
+      },
+    });
+
+    res.status(201).json({ data: card, error: null });
+  } catch (err) {
+    console.error('[adminCreateConnectCard] Error:', err);
+    res.status(500).json({ 
+      data: null, 
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to create connect card' } 
+    });
+  }
+}
+
+/** PATCH /api/v1/admin/connect-cards/:id */
+export async function adminUpdateConnectCard(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params as { id: string };
+    if (!id) {
+      res.status(400).json({ 
+        data: null, 
+        error: { code: 'BAD_REQUEST', message: 'id required' } 
+      });
+      return;
+    }
+
+    const parsed = UpdateConnectCardBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ 
+        data: null, 
+        error: { code: 'VALIDATION_ERROR', message: parsed.error.message } 
+      });
+      return;
+    }
+
+    const updateData: Prisma.ConnectCardUpdateInput = {};
+    if (parsed.data.title !== undefined) updateData.title = parsed.data.title;
+    if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
+    if (parsed.data.url !== undefined) updateData.url = parsed.data.url;
+    if (parsed.data.iconName !== undefined) updateData.iconName = parsed.data.iconName;
+    if (parsed.data.category !== undefined) updateData.category = parsed.data.category;
+    if (parsed.data.displayOrder !== undefined) updateData.displayOrder = parsed.data.displayOrder;
+    if (parsed.data.enabled !== undefined) updateData.enabled = parsed.data.enabled;
+
+    const card = await prisma.connectCard.update({
+      where: { id },
+      data: updateData,
+    });
+
+    res.json({ data: card, error: null });
+  } catch (err: any) {
+    if (err.code === 'P2025') {
+      res.status(404).json({ 
+        data: null, 
+        error: { code: 'NOT_FOUND', message: 'Connect card not found' } 
+      });
+    } else {
+      console.error('[adminUpdateConnectCard] Error:', err);
+      res.status(500).json({ 
+        data: null, 
+        error: { code: 'INTERNAL_ERROR', message: 'Failed to update connect card' } 
+      });
+    }
+  }
+}
+
+/** DELETE /api/v1/admin/connect-cards/:id */
+export async function adminDeleteConnectCard(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params as { id: string };
+    if (!id) {
+      res.status(400).json({ 
+        data: null, 
+        error: { code: 'BAD_REQUEST', message: 'id required' } 
+      });
+      return;
+    }
+
+    await prisma.connectCard.delete({
+      where: { id },
+    });
+
+    res.json({ data: { deleted: true, id }, error: null });
+  } catch (err: any) {
+    if (err.code === 'P2025') {
+      res.status(404).json({ 
+        data: null, 
+        error: { code: 'NOT_FOUND', message: 'Connect card not found' } 
+      });
+    } else {
+      console.error('[adminDeleteConnectCard] Error:', err);
+      res.status(500).json({ 
+        data: null, 
+        error: { code: 'INTERNAL_ERROR', message: 'Failed to delete connect card' } 
+      });
+    }
+  }
+}
+
+/** POST /api/v1/admin/connect-cards/reorder */
+export async function adminReorderConnectCards(req: Request, res: Response): Promise<void> {
+  try {
+    const parsed = ReorderConnectCardsBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ 
+        data: null, 
+        error: { code: 'VALIDATION_ERROR', message: parsed.error.message } 
+      });
+      return;
+    }
+
+    // Bulk update displayOrder for each card
+    await prisma.$transaction(
+      parsed.data.items.map(item =>
+        prisma.connectCard.update({
+          where: { id: item.id },
+          data: { displayOrder: item.displayOrder },
+        })
+      )
+    );
+
+    res.json({ data: { reordered: true }, error: null });
+  } catch (err) {
+    console.error('[adminReorderConnectCards] Error:', err);
+    res.status(500).json({ 
+      data: null, 
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to reorder connect cards' } 
+    });
+  }
 }

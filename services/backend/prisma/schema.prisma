@@ -850,6 +850,34 @@ model XpEvent {
 }
 
 // ---------------------------------------------------------------------------
+// CONNECT CARDS
+// Admin-managed cards for community links (Discord, etc.) and sponsors
+// ---------------------------------------------------------------------------
+
+enum ConnectCardCategory {
+  COMMUNITY
+  SPONSOR
+  SOCIAL
+  OTHER
+}
+
+model ConnectCard {
+  id           String              @id @default(cuid())
+  title        String              // e.g., "Join our Discord"
+  description  String?             // Optional tagline
+  url          String              // External link
+  iconName     String?             // Lucide icon name (e.g., "MessageCircle", "Heart")
+  category     ConnectCardCategory @default(COMMUNITY)
+  displayOrder Int                 @default(0)
+  enabled      Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([category, displayOrder])
+  @@index([enabled])
+}
+
+// ---------------------------------------------------------------------------
 // RANK DEFINITIONS
 // Admin-managed — each row defines one of the 10 (or more) ranks.
 // ---------------------------------------------------------------------------

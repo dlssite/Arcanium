@@ -9,6 +9,8 @@ import {
   ChevronRight,
   Scroll,
   X,
+  CircleDot,
+  Link2,
 } from 'lucide-react';
 import { useCollections } from '../../hooks/useCollections.ts';
 import { features } from '../../config/features.ts';
@@ -96,7 +98,11 @@ export default function MobileMenuSheet({ open, onClose, activeTab, setActiveTab
     ...(features.community
       ? [{ id: 'community', label: 'Community', icon: Users }]
       : []),
+    ...(features.circles
+      ? [{ id: 'circles', label: 'Reading Circles', icon: CircleDot }]
+      : []),
     { id: 'profile',   label: 'Scholar Profile',   icon: User },
+    { id: 'connect',   label: 'Connect',           icon: Link2 },
   ];
 
   return (

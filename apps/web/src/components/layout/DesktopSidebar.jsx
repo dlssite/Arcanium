@@ -11,6 +11,7 @@ import {
   PanelLeftClose,
   LogOut,
   CircleDot,
+  Link2,
 } from 'lucide-react';
 import { useUser } from '../../hooks/useUser.js';
 import { useCollections } from '../../hooks/useCollections.ts';
@@ -41,6 +42,7 @@ export default function DesktopSidebar({
       ? [{ id: 'circles', label: 'Reading Circles', icon: CircleDot }]
       : []),
     { id: 'profile',   label: 'Scholar Profile',   icon: User },
+    { id: 'connect',   label: 'Connect',           icon: Link2 },
   ];
 
   const archivalCodices = collections;
@@ -255,7 +257,7 @@ export default function DesktopSidebar({
                           ? 'bg-[#43335A] text-white shadow-2xs' 
                           : 'bg-[#EFEAE2] dark:bg-[#2B2138] text-[#968C9E] dark:text-[#7A6F87]'
                       }`}>
-                        {hasCheck ? '✓' : ''}
+                        {hasCheck ? '✓' : '✕'}
                       </div>
                       <span className="text-[10px] text-[#9D93A5] dark:text-[#7A6F87] font-medium">{day}</span>
                     </div>
@@ -272,7 +274,7 @@ export default function DesktopSidebar({
             <div className="flex flex-col items-center gap-2">
               <div 
                 onClick={() => setActiveTab('profile')}
-                title={`${user.displayName} (${user.archiveLevelTitle})`}
+                title={`${user.displayName} (${user.xp?.rank?.title || 'Wandering Scribe'})`}
                 className="w-11 h-11 mx-auto rounded-full overflow-hidden border-2 border-white dark:border-[#2E243A] ring-2 ring-[#43335A]/25 cursor-pointer shadow-2xs hover:scale-105 transition-transform"
               >
                 <img src={user.avatarUrl} alt={user.displayName} className="w-full h-full object-cover" />
@@ -301,7 +303,7 @@ export default function DesktopSidebar({
                     </h4>
                     <p className="text-[10px] text-[#857B90] dark:text-[#9F94AC] truncate font-medium flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      {user.archiveLevelTitle.split(' ').slice(0, 3).join(' ')}
+                      {user.xp?.rank?.title || 'Wandering Scribe'}
                     </p>
                   </div>
                 </div>
