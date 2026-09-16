@@ -27,6 +27,25 @@ import {
   deleteReviewAdmin,
   getReviewAnalytics,
 } from '../services/review.service.js';
+import {
+  adminListCircles,
+  adminGetCircle,
+  adminCreateCircle,
+  adminUpdateCircle,
+  adminDeleteCircle,
+  adminFeatureCircle,
+  adminListCircleMembers,
+  adminRemoveCircleMember,
+  adminListCirclePosts,
+  adminRemoveCirclePost,
+  adminListCircleReplies,
+  adminRemoveCircleReply,
+  adminListCircleRequests,
+  adminApproveCircleRequest,
+  adminRejectCircleRequest,
+  getCircleConfig,
+  updateCircleConfig,
+} from '../services/admin.service.js';
 
 export const adminRouter: Router = Router();
 
@@ -281,3 +300,62 @@ adminRouter.patch('/xp-config', updateXpConfigAdmin);
 
 /** POST /api/v1/admin/xp-config/reset   — restore defaults */
 adminRouter.post('/xp-config/reset', resetXpConfigAdmin);
+
+// ---------------------------------------------------------------------------
+// Reading Circle Management
+// ---------------------------------------------------------------------------
+
+/** GET  /api/v1/admin/circles */
+adminRouter.get('/circles',             adminListCircles);
+
+/** POST /api/v1/admin/circles */
+adminRouter.post('/circles',            adminCreateCircle);
+
+/** GET  /api/v1/admin/circles/:id */
+adminRouter.get('/circles/:id',         adminGetCircle);
+
+/** PATCH /api/v1/admin/circles/:id */
+adminRouter.patch('/circles/:id',       adminUpdateCircle);
+
+/** DELETE /api/v1/admin/circles/:id */
+adminRouter.delete('/circles/:id',      adminDeleteCircle);
+
+/** PATCH /api/v1/admin/circles/:id/feature */
+adminRouter.patch('/circles/:id/feature', adminFeatureCircle);
+
+/** GET    /api/v1/admin/circles/:id/members */
+adminRouter.get('/circles/:id/members',              adminListCircleMembers);
+
+/** DELETE /api/v1/admin/circles/:id/members/:userId */
+adminRouter.delete('/circles/:id/members/:userId',   adminRemoveCircleMember);
+
+/** GET    /api/v1/admin/circles/:id/posts */
+adminRouter.get('/circles/:id/posts',                adminListCirclePosts);
+
+/** DELETE /api/v1/admin/circles/:id/posts/:postId */
+adminRouter.delete('/circles/:id/posts/:postId',     adminRemoveCirclePost);
+
+/** GET    /api/v1/admin/circles/:id/posts/:postId/replies */
+adminRouter.get('/circles/:id/posts/:postId/replies',              adminListCircleReplies);
+
+/** DELETE /api/v1/admin/circles/:id/posts/:postId/replies/:replyId */
+adminRouter.delete('/circles/:id/posts/:postId/replies/:replyId',  adminRemoveCircleReply);
+
+/** GET    /api/v1/admin/circles/:id/requests */
+adminRouter.get('/circles/:id/requests',                           adminListCircleRequests);
+
+/** PATCH  /api/v1/admin/circles/:id/requests/:requestId/approve */
+adminRouter.patch('/circles/:id/requests/:requestId/approve',      adminApproveCircleRequest);
+
+/** PATCH  /api/v1/admin/circles/:id/requests/:requestId/reject */
+adminRouter.patch('/circles/:id/requests/:requestId/reject',       adminRejectCircleRequest);
+
+// ---------------------------------------------------------------------------
+// Circle Config
+// ---------------------------------------------------------------------------
+
+/** GET  /api/v1/admin/circle-config */
+adminRouter.get('/circle-config',  getCircleConfig);
+
+/** PATCH /api/v1/admin/circle-config */
+adminRouter.patch('/circle-config', updateCircleConfig);

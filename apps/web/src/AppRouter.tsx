@@ -19,6 +19,9 @@ const ProfileView   = lazy(() => import('./features/profile/components/ProfileVi
 const CreatorDashboard = lazy(() => import('./features/creator/components/CreatorDashboard'));
 const WorksList        = lazy(() => import('./features/creator/components/WorksList'));
 const ChapterManager   = lazy(() => import('./features/creator/components/ChapterManager'));
+// Circles — own routes, lazy-loaded separate chunks
+const CirclesDirectory = lazy(() => import('./features/circles/components/CirclesDirectory'));
+const CircleDetailView = lazy(() => import('./features/circles/components/CircleDetailView'));
 // Reader — own route outside the AppShell layout (full-screen, no nav chrome)
 const ReaderView    = lazy(() => import('./features/reader/components/ReaderView'));
 
@@ -117,4 +120,6 @@ export {
   CreatorDashboard,
   WorksList,
   ChapterManager,
+  CirclesDirectory,
+  CircleDetailView,
 };

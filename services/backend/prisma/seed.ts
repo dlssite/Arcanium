@@ -478,6 +478,340 @@ async function main() {
     console.info("No content found — skipping review seed (run reseed.mjs first)");
   }
 
+  // ---------------------------------------------------------------------------
+  // AppConfig — circle rank threshold (runtime-editable, no redeploy)
+  // ---------------------------------------------------------------------------
+  await prisma.appConfig.upsert({
+    where:  { key: 'circle_min_rank_level' },
+    update: {},
+    create: { key: 'circle_min_rank_level', value: '3' },
+  });
+  console.info("Seeded AppConfig: circle_min_rank_level = 3");
+
+  // ---------------------------------------------------------------------------
+  // FeatureFlag — FEATURE_FLAG_CIRCLES (disabled by default)
+  // ---------------------------------------------------------------------------
+  await prisma.featureFlag.upsert({
+    where:  { key: 'FEATURE_FLAG_CIRCLES' },
+    update: {},
+    create: {
+      key:         'FEATURE_FLAG_CIRCLES',
+      name:        'Reading Circles',
+      description: 'Enables the Reading Circles community feature — creation, joining, posting, replies, and the /circles directory.',
+      category:    'CORE_READER',
+      enabled:     false,
+      rolloutPct:  0,
+      updatedById: null,
+    },
+  });
+  console.info("Seeded FeatureFlag: FEATURE_FLAG_CIRCLES (disabled)");
+
+  // ---------------------------------------------------------------------------
+  // Reading Circles — 3 circles seeded with real users, members, sessions, posts
+  // ---------------------------------------------------------------------------
+
+  // Fetch real seeded users for circle ownership and membership
+  const circleOwner1 = await prisma.user.findUnique({ where: { email: 'lyra.starlight@astral.space' } });   // Lyra Solis (VERIFIED_WRITER)
+  const circleOwner2 = await prisma.user.findUnique({ where: { email: 'kael.shadows@void.xyz' } });          // Kaelen Void
+  const circleOwner3 = await prisma.user.findUnique({ where: { email: 'dev@arcanium.local' } });             // Dev User (ADMIN)
+  const memberA      = await prisma.user.findUnique({ where: { email: 'sol.vance@arcanium.local' } });       // Sol Vance
+  const memberB      = await prisma.user.findUnique({ where: { email: 'mira.ashford@arcanium.local' } });    // Mira Ashford
+  const memberC      = await prisma.user.findUnique({ where: { email: 'finn.darrow@arcanium.local' } });     // Finn Darrow
+  const memberD      = await prisma.user.findUnique({ where: { email: 'reader@arcanium.local' } });          // Erin Vance
+  const memberE      = await prisma.user.findUnique({ where: { email: 'talia.alchemist@potion.dev' } });     // Talia Aurelia
+
+  if (circleOwner1 && circleOwner2 && circleOwner3 && memberA && memberB && memberC && memberD && memberE) {
+
+    // ── Circle 1: The Constellation Society (PUBLIC, featured) ───────────────
+    const circle1 = await prisma.readingCircle.upsert({
+      where:  { id: 'seed-circle-1' },
+      update: {},
+      create: {
+        id:            'seed-circle-1',
+        name:          'The Constellation Society',
+        tag:           '#Cosmology',
+        description:   'A gathering of scholars who read by starlight. We explore cosmological fiction, celestial lore, and the great mystery of what lies beyond the archive.',
+        coverColor:    'bg-violet-500',
+        visibility:    'PUBLIC',
+        isPublic:      true,
+        isFeatured:    true,
+        featuredOrder: 0,
+        isArchived:    false,
+        ownerId:       circleOwner1.id,
+      },
+    });
+
+    // Members for circle 1
+    for (const [userId, role] of [
+      [circleOwner1.id, 'OWNER'],
+      [memberA.id,      'MODERATOR'],
+      [memberB.id,      'MEMBER'],
+      [memberC.id,      'MEMBER'],
+      [memberD.id,      'MEMBER'],
+    ] as [string, 'OWNER'|'MODERATOR'|'MEMBER'][]) {
+      await prisma.circleMember.upsert({
+        where:  { circleId_userId: { circleId: circle1.id, userId } },
+        update: {},
+        create: { circleId: circle1.id, userId, role, status: 'ACTIVE' },
+      });
+    }
+
+    // Active session for circle 1
+    await prisma.circleSession.upsert({
+      where:  { id: 'seed-session-1' },
+      update: {},
+      create: {
+        id:          'seed-session-1',
+        circleId:    circle1.id,
+        bookTitle:   'The Memory Stars',
+        chapterHint: 'Chapter IV — The Light of Ancients',
+        activeNow:   28,
+        isActive:    true,
+        startedAt:   new Date('2026-09-10T20:00:00Z'),
+      },
+    });
+
+    // Posts for circle 1
+    const post1 = await prisma.circlePost.upsert({
+      where:  { id: 'seed-post-1' },
+      update: {},
+      create: {
+        id:         'seed-post-1',
+        circleId:   circle1.id,
+        authorId:   memberA.id,
+        type:       'MARGINALIA',
+        quote:      'We believed the sky was silent, until we learned to listen to the light. Every beam of starlight traveling across the void carries the laughter of children who lived ten thousand seasons ago.',
+        chapter:    'Chapter IV: The Light of Ancients',
+        reflection: 'This passage paired with midnight chamomile tea gave me goosebumps. The way the author ties acoustic metaphor to photons is genuinely unlike anything I have read this year.',
+        echoCount:  48,
+        replyCount: 2,
+        isPinned:   true,
+      },
+    });
+
+    const post2 = await prisma.circlePost.upsert({
+      where:  { id: 'seed-post-2' },
+      update: {},
+      create: {
+        id:         'seed-post-2',
+        circleId:   circle1.id,
+        authorId:   circleOwner1.id,
+        type:       'DISCUSSION',
+        title:      'Does the author intentionally mirror Sagan\'s Pale Blue Dot?',
+        body:       'I keep noticing structural echoes of Sagan\'s writing in the way the narrator addresses the reader directly — the "you" feels cosmological, not personal. Anyone else pick this up?',
+        echoCount:  21,
+        replyCount: 3,
+        isPinned:   false,
+      },
+    });
+
+    // Replies for post 1
+    await prisma.circlePostReply.upsert({
+      where:  { id: 'seed-reply-1-1' },
+      update: {},
+      create: { id: 'seed-reply-1-1', postId: post1.id, authorId: memberB.id, body: 'Absolutely agree — I read it three times. The phonon/photon parallel is subtle but unmistakable.' },
+    });
+    await prisma.circlePostReply.upsert({
+      where:  { id: 'seed-reply-1-2' },
+      update: {},
+      create: { id: 'seed-reply-1-2', postId: post1.id, authorId: memberC.id, body: 'This is what I live for in this circle. Thank you for sharing this.' },
+    });
+
+    // Replies for post 2
+    await prisma.circlePostReply.upsert({
+      where:  { id: 'seed-reply-2-1' },
+      update: {},
+      create: { id: 'seed-reply-2-1', postId: post2.id, authorId: memberA.id, body: 'Yes! The address shifts in Chapter VI from "we" to "you" and that is exactly when the Sagan tone kicks in.' },
+    });
+    await prisma.circlePostReply.upsert({
+      where:  { id: 'seed-reply-2-2' },
+      update: {},
+      create: { id: 'seed-reply-2-2', postId: post2.id, authorId: memberD.id, body: 'Could also be Calvino influence — the second person in Cosmicomics does the same thing.' },
+    });
+    await prisma.circlePostReply.upsert({
+      where:  { id: 'seed-reply-2-3' },
+      update: {},
+      create: { id: 'seed-reply-2-3', postId: post2.id, authorId: memberB.id, body: 'Good call on Calvino. I think it is both, deliberately so.' },
+    });
+
+    // ── Circle 2: Midnight Philosophers (PUBLIC, featured) ───────────────────
+    const circle2 = await prisma.readingCircle.upsert({
+      where:  { id: 'seed-circle-2' },
+      update: {},
+      create: {
+        id:            'seed-circle-2',
+        name:          'Midnight Philosophers',
+        tag:           '#Philosophy',
+        description:   'We read when the archive is quiet and the world sleeps. Philosophy, weird fiction, and the books that change how you think.',
+        coverColor:    'bg-indigo-500',
+        visibility:    'PUBLIC',
+        isPublic:      true,
+        isFeatured:    true,
+        featuredOrder: 1,
+        isArchived:    false,
+        ownerId:       circleOwner2.id,
+      },
+    });
+
+    for (const [userId, role] of [
+      [circleOwner2.id, 'OWNER'],
+      [memberC.id,      'MODERATOR'],
+      [memberA.id,      'MEMBER'],
+      [memberE.id,      'MEMBER'],
+      [circleOwner1.id, 'MEMBER'],
+    ] as [string, 'OWNER'|'MODERATOR'|'MEMBER'][]) {
+      await prisma.circleMember.upsert({
+        where:  { circleId_userId: { circleId: circle2.id, userId } },
+        update: {},
+        create: { circleId: circle2.id, userId, role, status: 'ACTIVE' },
+      });
+    }
+
+    // Active session for circle 2
+    await prisma.circleSession.upsert({
+      where:  { id: 'seed-session-2' },
+      update: {},
+      create: {
+        id:          'seed-session-2',
+        circleId:    circle2.id,
+        bookTitle:   'The Archive Chronicles',
+        chapterHint: 'Chapter VIII — The Cartographer\'s Last Map',
+        activeNow:   45,
+        isActive:    true,
+        startedAt:   new Date('2026-09-12T23:00:00Z'),
+      },
+    });
+
+    // Post for circle 2
+    const post3 = await prisma.circlePost.upsert({
+      where:  { id: 'seed-post-3' },
+      update: {},
+      create: {
+        id:         'seed-post-3',
+        circleId:   circle2.id,
+        authorId:   memberC.id,
+        type:       'MARGINALIA',
+        quote:      'The navigator who trusts only visible shores will never discover the oceans of memory that flow between celestial spheres.',
+        chapter:    'Manuscript Codex VII',
+        reflection: 'Notice how the silver ink metaphor mirrors the stellar coordinates in the opening chapter? The author is building a visual grammar across the whole book.',
+        echoCount:  32,
+        replyCount: 1,
+        isPinned:   false,
+      },
+    });
+
+    await prisma.circlePostReply.upsert({
+      where:  { id: 'seed-reply-3-1' },
+      update: {},
+      create: { id: 'seed-reply-3-1', postId: post3.id, authorId: circleOwner2.id, body: 'The silver ink callback is something I almost missed on first read. Great catch.' },
+    });
+
+    // ── Circle 3: Pastoral Lore Guild (PRIVATE) ───────────────────────────────
+    const circle3 = await prisma.readingCircle.upsert({
+      where:  { id: 'seed-circle-3' },
+      update: {},
+      create: {
+        id:            'seed-circle-3',
+        name:          'Pastoral Lore Guild',
+        tag:           '#Fables',
+        description:   'A private circle for fans of pastoral fiction, fables, and slow-burn cozy fantasy. Membership by request.',
+        coverColor:    'bg-emerald-500',
+        visibility:    'PRIVATE',
+        isPublic:      false,
+        isFeatured:    false,
+        featuredOrder: 0,
+        isArchived:    false,
+        ownerId:       circleOwner3.id,
+      },
+    });
+
+    for (const [userId, role] of [
+      [circleOwner3.id, 'OWNER'],
+      [memberD.id,      'MEMBER'],
+      [memberE.id,      'MEMBER'],
+    ] as [string, 'OWNER'|'MODERATOR'|'MEMBER'][]) {
+      await prisma.circleMember.upsert({
+        where:  { circleId_userId: { circleId: circle3.id, userId } },
+        update: {},
+        create: { circleId: circle3.id, userId, role, status: 'ACTIVE' },
+      });
+    }
+
+    await prisma.circleSession.upsert({
+      where:  { id: 'seed-session-3' },
+      update: {},
+      create: {
+        id:        'seed-session-3',
+        circleId:  circle3.id,
+        bookTitle: 'The Wind in the Willows',
+        activeNow: 12,
+        isActive:  true,
+        startedAt: new Date('2026-09-14T18:00:00Z'),
+      },
+    });
+
+    const post4 = await prisma.circlePost.upsert({
+      where:  { id: 'seed-post-4' },
+      update: {},
+      create: {
+        id:         'seed-post-4',
+        circleId:   circle3.id,
+        authorId:   memberD.id,
+        type:       'DISCUSSION',
+        title:      'Mole\'s return home in Chapter V is the emotional core of the whole book',
+        body:       'I reread it last night and cried again. The way Grahame handles Mole\'s longing without sentimentalizing it — just pure, clean prose — is something I want to study as a writer.',
+        echoCount:  15,
+        replyCount: 1,
+        isPinned:   false,
+      },
+    });
+
+    await prisma.circlePostReply.upsert({
+      where:  { id: 'seed-reply-4-1' },
+      update: {},
+      create: { id: 'seed-reply-4-1', postId: post4.id, authorId: circleOwner3.id, body: 'That chapter is why I started this circle. Absolutely.' },
+    });
+
+    console.info("Seeded 3 Reading Circles with members, sessions, and posts");
+
+    // ── Marginalia posts (global feed) ────────────────────────────────────────
+    const marginaliaSeeds = [
+      {
+        id:         'seed-marginalia-1',
+        authorId:   memberA.id,
+        bookTitle:  'The Memory Stars',
+        chapter:    'Chapter IV: The Light of Ancients',
+        quote:      'We believed the sky was silent, until we learned to listen to the light. Every beam of starlight traveling across the void carries the laughter of children who lived ten thousand seasons ago.',
+        reflection: 'This passage gave me goosebumps. Liber recommended this book and it was exactly right for a quiet midnight read.',
+        echoCount:  48,
+        replyCount: 14,
+      },
+      {
+        id:         'seed-marginalia-2',
+        authorId:   memberC.id,
+        bookTitle:  'Whispers of the Cartographer',
+        chapter:    'Manuscript Codex VII',
+        quote:      'The navigator who trusts only visible shores will never discover the oceans of memory that flow between celestial spheres.',
+        reflection: 'Notice how the silver ink on this page mirrors the stellar coordinates we found in the opening chapter? Breathtaking archival craft.',
+        echoCount:  32,
+        replyCount: 9,
+      },
+    ];
+
+    for (const m of marginaliaSeeds) {
+      await prisma.marginaliaPost.upsert({
+        where:  { id: m.id },
+        update: {},
+        create: m,
+      });
+    }
+
+    console.info("Seeded 2 global Marginalia posts");
+
+  } else {
+    console.warn("Skipping circle seed — one or more required users not found. Run seed once more after users are created.");
+  }
+
   console.info("Seed complete.");
 }
 

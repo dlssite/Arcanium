@@ -10,12 +10,14 @@
  *
  * All flags default to TRUE when the env var is absent so that local dev
  * works out of the box without a .env file. Set to "false" to disable.
+ * Exception: features.circles defaults to FALSE (opt-in, not opt-out).
  *
  * Env vars (in apps/web/.env.example):
  *   VITE_FEATURE_FLAG_AI_HOUSEKEEPER   — Liber tab, companion dock, mic button
  *   VITE_FEATURE_FLAG_COMMUNITY        — Community tab
  *   VITE_FEATURE_FLAG_READER           — "Begin Reading" navigation links
  *   VITE_FEATURE_FLAG_VOICE_INPUT      — Mic button inside Liber chat
+ *   VITE_FEATURE_FLAG_CIRCLES          — Reading Circles (default: false)
  */
 
 function flag(name: string, defaultValue = true): boolean {
@@ -42,6 +44,9 @@ export const features = {
    * Can be false even when aiHousekeeper is true (voice is an optional layer).
    */
   voiceInput: flag('VITE_FEATURE_FLAG_VOICE_INPUT'),
+
+  /** Show/hide Reading Circles feature — directory, detail pages, and community strip. */
+  circles: flag('VITE_FEATURE_FLAG_CIRCLES', false),
 } as const;
 
 export type Features = typeof features;

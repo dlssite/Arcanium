@@ -9,3 +9,4 @@ export * from './community.js';
 export * from './creator.js';
 export * from './review.js';
 export * from './xp.js';
+export * from './circle.js';

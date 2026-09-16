@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { CircleSummarySchema } from './circle.js';
 
 // ---------------------------------------------------------------------------
-// Reading Circle
+// Reading Circle (legacy overview shape — kept for backward compat with CommunityView)
 // ---------------------------------------------------------------------------
 
 export const ReadingCircleSchema = z.object({
@@ -59,9 +60,10 @@ export type CommunityChallenge = z.infer<typeof CommunityChallengeSchema>;
 // ---------------------------------------------------------------------------
 
 export const CommunityOverviewSchema = z.object({
-  circles: z.array(ReadingCircleSchema),
-  posts: z.array(MarginaliaPostSchema),
-  challenge: CommunityChallengeSchema.nullable(),
+  circles:         z.array(ReadingCircleSchema),
+  posts:           z.array(MarginaliaPostSchema),
+  challenge:       CommunityChallengeSchema.nullable(),
+  featuredCircles: z.array(CircleSummarySchema),
 });
 
 export type CommunityOverview = z.infer<typeof CommunityOverviewSchema>;

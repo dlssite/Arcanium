@@ -29,20 +29,24 @@ function archiveRole(level: number): string {
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/community/overview
-// Single endpoint returns circles + posts + active challenge together.
-// Avoids a waterfall of three separate requests from the frontend.
+// Single endpoint returns circles + posts + active challenge + featured circles.
+// Avoids a waterfall of four separate requests from the frontend.
 // ---------------------------------------------------------------------------
 
 export async function getCommunityOverview(_req: Request, res: Response): Promise<void> {
-  const [circles, posts, challenge] = await Promise.all([
+  const [circles, posts, challenge, featuredCircles] = await Promise.all([
     // Reading circles with member count and live session count
     prisma.readingCircle.findMany({
-      where: { isPublic: true },
+      where: { isPublic: true, isArchived: false },
       orderBy: { createdAt: 'desc' },
       take: 10,
       include: {
         _count: { select: { members: true } },
-        sessions: { select: { activeNow: true } },
+        sessions: {
+          where:  { isActive: true },
+          select: { activeNow: true },
+          take:   1,
+        },
       },
     }),
 
@@ -65,6 +69,22 @@ export async function getCommunityOverview(_req: Request, res: Response): Promis
     prisma.communityChallenge.findFirst({
       where: { endsAt: { gt: new Date() } },
       orderBy: { endsAt: 'asc' },
+    }),
+
+    // Featured circles — max 4, ordered by featuredOrder
+    prisma.readingCircle.findMany({
+      where:   { isFeatured: true, isArchived: false },
+      orderBy: { featuredOrder: 'asc' },
+      take:    4,
+      include: {
+        _count:   { select: { members: true } },
+        sessions: {
+          where:  { isActive: true },
+          select: { id: true, bookTitle: true, chapterHint: true, activeNow: true, isActive: true, startedAt: true, endedAt: true },
+          take:   1,
+        },
+        owner: { select: { displayName: true } },
+      },
     }),
   ]);
 
@@ -106,8 +126,46 @@ export async function getCommunityOverview(_req: Request, res: Response): Promis
       }
     : null;
 
+  const shapedFeaturedCircles = featuredCircles.map((c: (typeof featuredCircles)[number]) => {
+    const activeSession = c.sessions[0] ?? null;
+    return {
+      id:            c.id,
+      name:          c.name,
+      tag:           c.tag,
+      description:   c.description,
+      coverColor:    c.coverColor,
+      visibility:    c.visibility,
+      memberCount:   c._count.members,
+      activeNow:     activeSession?.activeNow ?? 0,
+      isFeatured:    c.isFeatured,
+      featuredOrder: c.featuredOrder,
+      isArchived:    c.isArchived,
+      ownerId:       c.ownerId,
+      ownerName:     c.owner.displayName,
+      activeSession: activeSession
+        ? {
+            id:          activeSession.id,
+            bookTitle:   activeSession.bookTitle,
+            chapterHint: activeSession.chapterHint,
+            activeNow:   activeSession.activeNow,
+            isActive:    true,
+            startedAt:   activeSession.startedAt.toISOString(),
+            endedAt:     activeSession.endedAt?.toISOString() ?? null,
+          }
+        : null,
+      membership:          null,
+      pendingRequestCount: 0,
+      createdAt:           c.createdAt.toISOString(),
+    };
+  });
+
   res.json({
-    data: { circles: shapedCircles, posts: shapedPosts, challenge: shapedChallenge },
+    data: {
+      circles:         shapedCircles,
+      posts:           shapedPosts,
+      challenge:       shapedChallenge,
+      featuredCircles: shapedFeaturedCircles,
+    },
     error: null,
   });
 }

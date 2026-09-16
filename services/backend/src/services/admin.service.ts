@@ -1825,14 +1825,21 @@ export async function createDefaultAvatar(req: Request, res: Response): Promise<
 
 /** PATCH /api/v1/admin/default-avatars/:id */
 export async function updateDefaultAvatar(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params['id'];
+  if (!id) { res.status(400).json({ data: null, error: { code: 'BAD_REQUEST', message: 'id required' } }); return; }
   const parsed = DefaultAvatarUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(422).json({ data: null, error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message } });
     return;
   }
+  // Strip undefined values so Prisma exactOptionalPropertyTypes is satisfied
+  const data: Record<string, unknown> = {};
+  if (parsed.data.url       !== undefined) data['url']       = parsed.data.url;
+  if (parsed.data.label     !== undefined) data['label']     = parsed.data.label;
+  if (parsed.data.sortOrder !== undefined) data['sortOrder'] = parsed.data.sortOrder;
+  if (parsed.data.enabled   !== undefined) data['enabled']   = parsed.data.enabled;
   try {
-    const avatar = await prisma.defaultAvatar.update({ where: { id }, data: parsed.data });
+    const avatar = await prisma.defaultAvatar.update({ where: { id }, data });
     res.json({ data: avatar, error: null });
   } catch {
     res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Avatar not found' } });
@@ -1841,7 +1848,8 @@ export async function updateDefaultAvatar(req: Request, res: Response): Promise<
 
 /** DELETE /api/v1/admin/default-avatars/:id */
 export async function deleteDefaultAvatar(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params['id'];
+  if (!id) { res.status(400).json({ data: null, error: { code: 'BAD_REQUEST', message: 'id required' } }); return; }
   try {
     await prisma.defaultAvatar.delete({ where: { id } });
     res.json({ data: { deleted: true, id }, error: null });
@@ -1879,8 +1887,10 @@ export async function adminCreateRank(req: Request, res: Response): Promise<void
     res.status(422).json({ data: null, error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message } });
     return;
   }
+  // description: string | undefined → string | null for Prisma
+  const data = { ...parsed.data, description: parsed.data.description ?? null };
   try {
-    const rank = await prisma.rankDefinition.create({ data: parsed.data });
+    const rank = await prisma.rankDefinition.create({ data });
     res.status(201).json({ data: rank, error: null });
   } catch {
     res.status(409).json({ data: null, error: { code: 'CONFLICT', message: 'A rank with this level already exists' } });
@@ -1889,14 +1899,24 @@ export async function adminCreateRank(req: Request, res: Response): Promise<void
 
 /** PATCH /api/v1/admin/ranks/:id */
 export async function adminUpdateRank(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params['id'];
+  if (!id) { res.status(400).json({ data: null, error: { code: 'BAD_REQUEST', message: 'id required' } }); return; }
   const parsed = RankUpsertSchema.partial().safeParse(req.body);
   if (!parsed.success) {
     res.status(422).json({ data: null, error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message } });
     return;
   }
+  // Strip undefined values; coerce description undefined → null
+  const data: Record<string, unknown> = {};
+  if (parsed.data.level       !== undefined) data['level']       = parsed.data.level;
+  if (parsed.data.title       !== undefined) data['title']       = parsed.data.title;
+  if (parsed.data.xpRequired  !== undefined) data['xpRequired']  = parsed.data.xpRequired;
+  if (parsed.data.icon        !== undefined) data['icon']        = parsed.data.icon;
+  if (parsed.data.colorClass  !== undefined) data['colorClass']  = parsed.data.colorClass;
+  if (parsed.data.description !== undefined) data['description'] = parsed.data.description ?? null;
+  if (parsed.data.enabled     !== undefined) data['enabled']     = parsed.data.enabled;
   try {
-    const rank = await prisma.rankDefinition.update({ where: { id }, data: parsed.data });
+    const rank = await prisma.rankDefinition.update({ where: { id }, data });
     res.json({ data: rank, error: null });
   } catch {
     res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Rank not found' } });
@@ -1905,7 +1925,8 @@ export async function adminUpdateRank(req: Request, res: Response): Promise<void
 
 /** DELETE /api/v1/admin/ranks/:id */
 export async function adminDeleteRank(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params['id'];
+  if (!id) { res.status(400).json({ data: null, error: { code: 'BAD_REQUEST', message: 'id required' } }); return; }
   try {
     await prisma.rankDefinition.delete({ where: { id } });
     res.json({ data: { deleted: true, id }, error: null });
@@ -2011,4 +2032,531 @@ export async function resetXpConfigAdmin(_req: Request, res: Response): Promise<
   });
   invalidateXpConfigCache();
   res.json({ data: XP_DEFAULTS, error: null });
+}
+
+// ===========================================================================
+// READING CIRCLE MANAGEMENT (Admin)
+// ===========================================================================
+
+const AdminCreateCircleBodySchema = z.object({
+  name:        z.string().min(3).max(80),
+  tag:         z.string().min(2).max(30),
+  description: z.string().max(500).optional(),
+  coverColor:  z.string().optional(),
+  visibility:  z.enum(['PUBLIC', 'PRIVATE']).default('PUBLIC'),
+  ownerId:     z.string().cuid(),
+  isFeatured:  z.boolean().optional(),
+  featuredOrder: z.number().int().optional(),
+});
+
+const AdminUpdateCircleBodySchema = AdminCreateCircleBodySchema.partial().omit({ ownerId: true }).extend({
+  isArchived: z.boolean().optional(),
+  featuredOrder: z.number().int().optional(),
+});
+
+const AdminCircleQuerySchema = z.object({
+  page:       z.coerce.number().int().min(1).default(1),
+  limit:      z.coerce.number().int().min(1).max(100).default(20),
+  search:     z.string().optional(),
+  visibility: z.enum(['PUBLIC', 'PRIVATE', 'ALL']).default('ALL'),
+  isFeatured: z.string().optional().transform(v => v === 'true' ? true : undefined),
+  isArchived: z.string().optional().transform(v => v === undefined ? undefined : v === 'true'),
+});
+
+const ADMIN_CIRCLE_INCLUDE = {
+  _count:   { select: { members: true, posts: true } },
+  sessions: {
+    where:   { isActive: true },
+    select:  { id: true, bookTitle: true, chapterHint: true, activeNow: true, isActive: true, startedAt: true, endedAt: true },
+    take:    1,
+  },
+  owner: { select: { displayName: true } },
+} as const;
+
+function shapeAdminCircle(c: {
+  id: string; name: string; tag: string; description: string | null;
+  coverColor: string; visibility: string; isFeatured: boolean;
+  featuredOrder: number; isArchived: boolean; ownerId: string;
+  createdAt: Date;
+  _count: { members: number; posts: number };
+  sessions: { activeNow: number; isActive: boolean; bookTitle: string | null; chapterHint: string | null; startedAt: Date; endedAt: Date | null; id: string }[];
+  owner: { displayName: string };
+  _pendingRequests?: number;
+}) {
+  const activeSession = c.sessions.find(s => s.isActive) ?? null;
+  return {
+    id:            c.id,
+    name:          c.name,
+    tag:           c.tag,
+    description:   c.description,
+    coverColor:    c.coverColor,
+    visibility:    c.visibility,
+    memberCount:   c._count.members,
+    postCount:     c._count.posts,
+    activeNow:     activeSession?.activeNow ?? 0,
+    isFeatured:    c.isFeatured,
+    featuredOrder: c.featuredOrder,
+    isArchived:    c.isArchived,
+    ownerId:       c.ownerId,
+    ownerName:     c.owner.displayName,
+    activeSession: activeSession ? {
+      id:          activeSession.id,
+      bookTitle:   activeSession.bookTitle,
+      chapterHint: activeSession.chapterHint,
+      activeNow:   activeSession.activeNow,
+      isActive:    true,
+      startedAt:   activeSession.startedAt.toISOString(),
+      endedAt:     activeSession.endedAt?.toISOString() ?? null,
+    } : null,
+    membership:          null,
+    pendingRequestCount: c._pendingRequests ?? 0,
+    createdAt:           c.createdAt.toISOString(),
+  };
+}
+
+/** GET /api/v1/admin/circles */
+export async function adminListCircles(req: Request, res: Response): Promise<void> {
+  const query = AdminCircleQuerySchema.parse(req.query);
+  const skip = (query.page - 1) * query.limit;
+
+  const where: Record<string, unknown> = {
+    ...(query.isArchived !== undefined ? { isArchived: query.isArchived } : {}),
+    ...(query.search     ? { name: { contains: query.search, mode: 'insensitive' } } : {}),
+    ...(query.visibility !== 'ALL' ? { visibility: query.visibility } : {}),
+    ...(query.isFeatured !== undefined ? { isFeatured: query.isFeatured } : {}),
+  };
+
+  const [circles, total] = await Promise.all([
+    prisma.readingCircle.findMany({
+      where,
+      include: ADMIN_CIRCLE_INCLUDE,
+      orderBy: [{ isFeatured: 'desc' }, { featuredOrder: 'asc' }, { createdAt: 'desc' }],
+      skip,
+      take: query.limit,
+    }),
+    prisma.readingCircle.count({ where }),
+  ]);
+
+  // Fetch pending request counts for all private circles in the page
+  const privateIds = circles.filter(c => c.visibility === 'PRIVATE').map(c => c.id);
+  const pendingCounts = privateIds.length > 0
+    ? await prisma.circleJoinRequest.groupBy({
+        by: ['circleId'],
+        where: { circleId: { in: privateIds }, status: 'PENDING' },
+        _count: { id: true },
+      })
+    : [];
+  const pendingMap = Object.fromEntries(pendingCounts.map(p => [p.circleId, p._count.id]));
+
+  res.json({
+    data: {
+      circles: circles.map(c => shapeAdminCircle({ ...c, _pendingRequests: pendingMap[c.id] ?? 0 } as Parameters<typeof shapeAdminCircle>[0])),
+      total,
+      page:    query.page,
+      hasMore: skip + circles.length < total,
+    },
+    error: null,
+  });
+}
+
+/** GET /api/v1/admin/circles/:id */
+export async function adminGetCircle(req: Request, res: Response): Promise<void> {
+  const id = req.params['id'];
+  if (!id) {
+    res.status(400).json({ data: null, error: { code: 'BAD_REQUEST', message: 'id required' } });
+    return;
+  }
+
+  try {
+    const circle = await prisma.readingCircle.findUnique({
+      where:   { id },
+      include: ADMIN_CIRCLE_INCLUDE,
+    });
+
+    if (!circle) {
+      res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Circle not found' } });
+      return;
+    }
+
+    const [members, requests, pendingCount] = await Promise.all([
+      prisma.circleMember.findMany({
+        where:   { circleId: id },
+        include: { user: { select: { displayName: true, avatarUrl: true } } },
+        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+        take:    50,
+      }),
+      prisma.circleJoinRequest.findMany({
+        where:   { circleId: id },
+        include: { user: { select: { displayName: true, avatarUrl: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.circleJoinRequest.count({ where: { circleId: id, status: 'PENDING' } }),
+    ]);
+
+    res.json({
+      data: {
+        ...shapeAdminCircle({ ...circle, _pendingRequests: pendingCount } as Parameters<typeof shapeAdminCircle>[0]),
+        members: members.map(m => ({
+          id:          m.id,
+          userId:      m.userId,
+          displayName: m.user.displayName,
+          avatarUrl:   m.user.avatarUrl,
+          role:        m.role,
+          status:      m.status,
+          joinedAt:    m.joinedAt.toISOString(),
+        })),
+        requests: requests.map(r => ({
+          id:          r.id,
+          circleId:    r.circleId,
+          userId:      r.userId,
+          displayName: r.user.displayName,
+          avatarUrl:   r.user.avatarUrl,
+          message:     r.message,
+          status:      r.status,
+          createdAt:   r.createdAt.toISOString(),
+        })),
+      },
+      error: null,
+    });
+  } catch (err) {
+    console.error('[adminGetCircle] Error:', err);
+    res.status(500).json({ data: null, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch circle detail' } });
+  }
+}
+
+/** POST /api/v1/admin/circles */
+export async function adminCreateCircle(req: Request, res: Response): Promise<void> {
+  const parsed = AdminCreateCircleBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).json({ data: null, error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message } });
+    return;
+  }
+  const { ownerId, name, tag, description, coverColor, visibility, isFeatured, featuredOrder } = parsed.data;
+
+  const ownerExists = await prisma.user.findUnique({ where: { id: ownerId }, select: { id: true } });
+  if (!ownerExists) {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Owner user not found' } });
+    return;
+  }
+
+  const circle = await prisma.$transaction(async (tx) => {
+    const c = await tx.readingCircle.create({
+      data: {
+        name, tag,
+        description:  description  ?? null,
+        coverColor:   coverColor   ?? 'bg-purple-500',
+        visibility:   visibility   ?? 'PUBLIC',
+        isPublic:     (visibility  ?? 'PUBLIC') === 'PUBLIC',
+        ownerId,
+        isFeatured:   isFeatured   ?? false,
+        featuredOrder: featuredOrder ?? 0,
+      },
+    });
+    await tx.circleMember.create({
+      data: { circleId: c.id, userId: ownerId, role: 'OWNER', status: 'ACTIVE' },
+    });
+    return c;
+  });
+
+  const full = await prisma.readingCircle.findUniqueOrThrow({
+    where:   { id: circle.id },
+    include: ADMIN_CIRCLE_INCLUDE,
+  });
+
+  res.status(201).json({ data: shapeAdminCircle(full as Parameters<typeof shapeAdminCircle>[0]), error: null });
+}
+
+/** PATCH /api/v1/admin/circles/:id */
+export async function adminUpdateCircle(req: Request, res: Response): Promise<void> {
+  const { id } = req.params as { id: string };
+  const parsed = AdminUpdateCircleBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(422).json({ data: null, error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message } });
+    return;
+  }
+
+  const data: Record<string, unknown> = {};
+  if (parsed.data.name        !== undefined) data['name']        = parsed.data.name;
+  if (parsed.data.tag         !== undefined) data['tag']         = parsed.data.tag;
+  if (parsed.data.description !== undefined) data['description'] = parsed.data.description;
+  if (parsed.data.coverColor  !== undefined) data['coverColor']  = parsed.data.coverColor;
+  if (parsed.data.visibility  !== undefined) { data['visibility'] = parsed.data.visibility; data['isPublic'] = parsed.data.visibility === 'PUBLIC'; }
+  if (parsed.data.isFeatured  !== undefined) data['isFeatured']  = parsed.data.isFeatured;
+  if (parsed.data.featuredOrder !== undefined) data['featuredOrder'] = parsed.data.featuredOrder;
+  if (parsed.data.isArchived  !== undefined) data['isArchived']  = parsed.data.isArchived;
+
+  try {
+    const updated = await prisma.readingCircle.update({ where: { id }, data, include: ADMIN_CIRCLE_INCLUDE });
+    res.json({ data: shapeAdminCircle(updated as Parameters<typeof shapeAdminCircle>[0]), error: null });
+  } catch {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Circle not found' } });
+  }
+}
+
+/** DELETE /api/v1/admin/circles/:id */
+export async function adminDeleteCircle(req: Request, res: Response): Promise<void> {
+  const { id } = req.params as { id: string };
+  try {
+    await prisma.readingCircle.delete({ where: { id } });
+    res.json({ data: { deleted: true, id }, error: null });
+  } catch {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Circle not found' } });
+  }
+}
+
+/** PATCH /api/v1/admin/circles/:id/feature */
+export async function adminFeatureCircle(req: Request, res: Response): Promise<void> {
+  const { id } = req.params as { id: string };
+  const { isFeatured, featuredOrder } = z.object({
+    isFeatured:    z.boolean(),
+    featuredOrder: z.number().int().optional(),
+  }).parse(req.body);
+
+  const updated = await prisma.readingCircle.update({
+    where: { id },
+    data:  { isFeatured, ...(featuredOrder !== undefined ? { featuredOrder } : {}) },
+    include: ADMIN_CIRCLE_INCLUDE,
+  });
+
+  res.json({ data: shapeAdminCircle(updated as Parameters<typeof shapeAdminCircle>[0]), error: null });
+}
+
+/** GET /api/v1/admin/circles/:id/members */
+export async function adminListCircleMembers(req: Request, res: Response): Promise<void> {
+  const { id } = req.params as { id: string };
+  const page  = Math.max(1, parseInt(String(req.query['page']  ?? '1'),  10));
+  const limit = Math.min(100, Math.max(1, parseInt(String(req.query['limit'] ?? '50'), 10)));
+
+  const [members, total] = await Promise.all([
+    prisma.circleMember.findMany({
+      where:   { circleId: id },
+      include: { user: { select: { displayName: true, avatarUrl: true } } },
+      orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+      skip:    (page - 1) * limit,
+      take:    limit,
+    }),
+    prisma.circleMember.count({ where: { circleId: id } }),
+  ]);
+
+  res.json({
+    data: members.map(m => ({
+      id:          m.id,
+      userId:      m.userId,
+      displayName: m.user.displayName,
+      avatarUrl:   m.user.avatarUrl,
+      role:        m.role,
+      status:      m.status,
+      joinedAt:    m.joinedAt.toISOString(),
+    })),
+    total, page,
+    hasMore: (page - 1) * limit + members.length < total,
+    error: null,
+  });
+}
+
+/** DELETE /api/v1/admin/circles/:id/members/:userId */
+export async function adminRemoveCircleMember(req: Request, res: Response): Promise<void> {
+  const { id: circleId, userId } = req.params as { id: string; userId: string };
+
+  const member = await prisma.circleMember.findUnique({
+    where: { circleId_userId: { circleId, userId } },
+    select: { role: true },
+  });
+
+  if (!member) {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Member not found' } });
+    return;
+  }
+  if (member.role === 'OWNER') {
+    res.status(403).json({ data: null, error: { code: 'FORBIDDEN', message: 'Cannot remove the circle owner' } });
+    return;
+  }
+
+  await prisma.circleMember.delete({ where: { circleId_userId: { circleId, userId } } });
+  res.json({ data: { removed: true, userId }, error: null });
+}
+
+/** GET /api/v1/admin/circles/:id/posts */
+export async function adminListCirclePosts(req: Request, res: Response): Promise<void> {
+  const { id: circleId } = req.params as { id: string };
+  const page      = Math.max(1, parseInt(String(req.query['page']  ?? '1'),  10));
+  const limit     = Math.min(100, Math.max(1, parseInt(String(req.query['limit'] ?? '20'), 10)));
+  const isRemoved = req.query['isRemoved'] === 'true' ? true : req.query['isRemoved'] === 'false' ? false : undefined;
+
+  const where: Record<string, unknown> = { circleId, ...(isRemoved !== undefined ? { isRemoved } : {}) };
+
+  const [posts, total] = await Promise.all([
+    prisma.circlePost.findMany({
+      where,
+      include: { author: { select: { displayName: true, avatarUrl: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip:    (page - 1) * limit,
+      take:    limit,
+    }),
+    prisma.circlePost.count({ where }),
+  ]);
+
+  res.json({
+    data: posts.map(p => ({
+      id:        p.id,
+      circleId:  p.circleId,
+      authorId:  p.authorId,
+      author:    p.author.displayName,
+      avatarUrl: p.author.avatarUrl,
+      type:      p.type,
+      title:     p.title,
+      body:      p.body ? p.body.slice(0, 100) : null,
+      quote:     p.quote ? p.quote.slice(0, 100) : null,
+      echoCount: p.echoCount,
+      replyCount: p.replyCount,
+      isPinned:  p.isPinned,
+      isRemoved: p.isRemoved,
+      createdAt: p.createdAt.toISOString(),
+    })),
+    total, page,
+    hasMore: (page - 1) * limit + posts.length < total,
+    error: null,
+  });
+}
+
+/** DELETE /api/v1/admin/circles/:id/posts/:postId */
+export async function adminRemoveCirclePost(req: Request, res: Response): Promise<void> {
+  const { postId } = req.params as { id: string; postId: string };
+  try {
+    await prisma.circlePost.update({ where: { id: postId }, data: { isRemoved: true } });
+    res.json({ data: { removed: true, postId }, error: null });
+  } catch {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Post not found' } });
+  }
+}
+
+/** GET /api/v1/admin/circles/:id/posts/:postId/replies */
+export async function adminListCircleReplies(req: Request, res: Response): Promise<void> {
+  const { postId } = req.params as { id: string; postId: string };
+  const replies = await prisma.circlePostReply.findMany({
+    where:   { postId },
+    include: { author: { select: { displayName: true, avatarUrl: true } } },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  res.json({
+    data: replies.map(r => ({
+      id:        r.id,
+      postId:    r.postId,
+      authorId:  r.authorId,
+      author:    r.author.displayName,
+      avatarUrl: r.author.avatarUrl,
+      body:      r.body,
+      isRemoved: r.isRemoved,
+      createdAt: r.createdAt.toISOString(),
+    })),
+    error: null,
+  });
+}
+
+/** DELETE /api/v1/admin/circles/:id/posts/:postId/replies/:replyId */
+export async function adminRemoveCircleReply(req: Request, res: Response): Promise<void> {
+  const { postId, replyId } = req.params as { id: string; postId: string; replyId: string };
+  try {
+    await prisma.$transaction([
+      prisma.circlePostReply.update({ where: { id: replyId }, data: { isRemoved: true } }),
+      prisma.circlePost.update({ where: { id: postId }, data: { replyCount: { decrement: 1 } } }),
+    ]);
+    res.json({ data: { removed: true, replyId }, error: null });
+  } catch {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Reply not found' } });
+  }
+}
+
+/** GET /api/v1/admin/circles/:id/requests */
+export async function adminListCircleRequests(req: Request, res: Response): Promise<void> {
+  const { id: circleId } = req.params as { id: string };
+  const status = (req.query['status'] as string | undefined) ?? 'ALL';
+
+  const requests = await prisma.circleJoinRequest.findMany({
+    where:   { circleId, ...(status !== 'ALL' ? { status: status as 'PENDING' | 'APPROVED' | 'REJECTED' } : {}) },
+    include: { user: { select: { displayName: true, avatarUrl: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json({
+    data: requests.map(r => ({
+      id:          r.id,
+      circleId:    r.circleId,
+      userId:      r.userId,
+      displayName: r.user.displayName,
+      avatarUrl:   r.user.avatarUrl,
+      message:     r.message,
+      status:      r.status,
+      createdAt:   r.createdAt.toISOString(),
+    })),
+    error: null,
+  });
+}
+
+/** PATCH /api/v1/admin/circles/:id/requests/:requestId/approve */
+export async function adminApproveCircleRequest(req: Request, res: Response): Promise<void> {
+  const { id: circleId, requestId } = req.params as { id: string; requestId: string };
+
+  const request = await prisma.circleJoinRequest.findUnique({
+    where: { id: requestId },
+    select: { userId: true, status: true, circleId: true },
+  });
+  if (!request || request.circleId !== circleId) {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Request not found' } });
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.circleJoinRequest.update({ where: { id: requestId }, data: { status: 'APPROVED', reviewedBy: req.user.id } }),
+    prisma.circleMember.upsert({
+      where:  { circleId_userId: { circleId, userId: request.userId } },
+      update: { status: 'ACTIVE', role: 'MEMBER' },
+      create: { circleId, userId: request.userId, role: 'MEMBER', status: 'ACTIVE' },
+    }),
+  ]);
+
+  res.json({ data: { approved: true, requestId }, error: null });
+}
+
+/** PATCH /api/v1/admin/circles/:id/requests/:requestId/reject */
+export async function adminRejectCircleRequest(req: Request, res: Response): Promise<void> {
+  const { requestId } = req.params as { id: string; requestId: string };
+  try {
+    await prisma.circleJoinRequest.update({
+      where: { id: requestId },
+      data:  { status: 'REJECTED', reviewedBy: req.user.id },
+    });
+    res.json({ data: { rejected: true, requestId }, error: null });
+  } catch {
+    res.status(404).json({ data: null, error: { code: 'NOT_FOUND', message: 'Request not found' } });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Circle Config — circle_min_rank_level
+// ---------------------------------------------------------------------------
+
+/** GET /api/v1/admin/circle-config */
+export async function getCircleConfig(_req: Request, res: Response): Promise<void> {
+  const row = await prisma.appConfig.findUnique({ where: { key: 'circle_min_rank_level' } });
+  const minRankLevel = parseInt(row?.value ?? '3', 10);
+  res.json({ data: { minRankLevel: isNaN(minRankLevel) ? 3 : minRankLevel }, error: null });
+}
+
+/** PATCH /api/v1/admin/circle-config */
+export async function updateCircleConfig(req: Request, res: Response): Promise<void> {
+  const { minRankLevel } = z.object({
+    minRankLevel: z.number().int().min(1).max(10),
+  }).parse(req.body);
+
+  const userId = (req as any).user?.id ?? null;
+
+  await prisma.appConfig.upsert({
+    where:  { key: 'circle_min_rank_level' },
+    update: { value: String(minRankLevel), updatedBy: userId },
+    create: { key: 'circle_min_rank_level', value: String(minRankLevel), updatedBy: userId },
+  });
+
+  res.json({ data: { minRankLevel }, error: null });
 }

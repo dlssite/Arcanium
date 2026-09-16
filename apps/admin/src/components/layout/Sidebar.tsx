@@ -15,6 +15,7 @@ import {
   MessageSquare,
   ImageIcon,
   Trophy,
+  CircleDot,
 } from 'lucide-react';
 import { useAdminStore } from '../../stores/adminStore';
 import { useCreatorVerification } from '../../hooks/useCreatorVerification';
@@ -69,6 +70,11 @@ export const Sidebar: React.FC = () => {
       label: 'Special Collections',
       path: '/collections',
       icon: <Library className="w-5 h-5 shrink-0 text-purple-500 dark:text-purple-400" />,
+    },
+    {
+      label: 'Reading Circles',
+      path: '/circles',
+      icon: <CircleDot className="w-5 h-5 shrink-0 text-purple-500 dark:text-purple-400" />,
     },
     {
       label: 'Default Avatars',

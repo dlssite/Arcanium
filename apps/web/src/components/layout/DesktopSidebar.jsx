@@ -10,6 +10,7 @@ import {
   Scroll, 
   PanelLeftClose,
   LogOut,
+  CircleDot,
 } from 'lucide-react';
 import { useUser } from '../../hooks/useUser.js';
 import { useCollections } from '../../hooks/useCollections.ts';
@@ -35,6 +36,9 @@ export default function DesktopSidebar({
       : []),
     ...(features.community
       ? [{ id: 'community', label: 'Community', icon: Users }]
+      : []),
+    ...(features.circles
+      ? [{ id: 'circles', label: 'Reading Circles', icon: CircleDot }]
       : []),
     { id: 'profile',   label: 'Scholar Profile',   icon: User },
   ];

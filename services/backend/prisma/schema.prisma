@@ -74,6 +74,34 @@ enum Gender {
   OTHER
 }
 
+enum CircleVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum CircleMemberRole {
+  OWNER
+  MODERATOR
+  MEMBER
+}
+
+enum CircleMemberStatus {
+  ACTIVE
+  PENDING
+  BANNED
+}
+
+enum CirclePostType {
+  MARGINALIA
+  DISCUSSION
+}
+
+enum CircleJoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ---------------------------------------------------------------------------
 // USER
 // ---------------------------------------------------------------------------
@@ -99,6 +127,11 @@ model User {
   aiActionLogs      AiActionLog[]
   badgeAwards       UserBadgeAward[]
   circleMemberships CircleMember[]      @relation("CircleMemberships")
+  ownedCircles      ReadingCircle[]     @relation("OwnedCircles")
+  circlePosts       CirclePost[]        @relation("CirclePosts")
+  circlePostEchoes  CirclePostEcho[]    @relation("CirclePostEchoes")
+  circlePostReplies CirclePostReply[]   @relation("CirclePostReplies")
+  circleJoinReqs    CircleJoinRequest[] @relation("CircleJoinRequests")
   marginaliaPosts   MarginaliaPost[]    @relation("MarginaliaPost")
   createdContent    Content[]           @relation("CreatorContent")
   creatorApplications CreatorApplication[] @relation("CreatorApplications")
@@ -313,27 +346,45 @@ model AiActionLog {
 // ---------------------------------------------------------------------------
 
 model ReadingCircle {
-  id          String   @id @default(cuid())
-  name        String
-  tag         String
-  focusTitle  String?
-  isPublic    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String           @id @default(cuid())
+  name          String
+  tag           String
+  description   String?          @db.VarChar(500)
+  focusTitle    String?
+  coverColor    String           @default("bg-purple-500")
+  visibility    CircleVisibility @default(PUBLIC)
+  isPublic      Boolean          @default(true)
+  isFeatured    Boolean          @default(false)
+  featuredOrder Int              @default(0)
+  isArchived    Boolean          @default(false)
 
-  members     CircleMember[]
-  sessions    CircleSession[]
+  // Ownership — every circle has exactly one owner
+  ownerId       String
+  owner         User             @relation("OwnedCircles", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  members      CircleMember[]
+  sessions     CircleSession[]
+  posts        CirclePost[]
+  joinRequests CircleJoinRequest[]
 
   @@index([isPublic])
+  @@index([isFeatured, featuredOrder])
+  @@index([isArchived])
+  @@index([ownerId])
 }
 
 model CircleMember {
-  id        String        @id @default(cuid())
+  id        String             @id @default(cuid())
   circleId  String
-  circle    ReadingCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  circle    ReadingCircle      @relation(fields: [circleId], references: [id], onDelete: Cascade)
   userId    String
-  user      User          @relation("CircleMemberships", fields: [userId], references: [id], onDelete: Cascade)
-  joinedAt  DateTime      @default(now())
+  user      User               @relation("CircleMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  role      CircleMemberRole   @default(MEMBER)
+  status    CircleMemberStatus @default(ACTIVE)
+  joinedAt  DateTime           @default(now())
 
   @@unique([circleId, userId])
   @@index([circleId])
@@ -342,13 +393,97 @@ model CircleMember {
 
 /// A live session snapshot — updated periodically, not a full audit log
 model CircleSession {
-  id        String        @id @default(cuid())
-  circleId  String
-  circle    ReadingCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
-  activeNow Int           @default(0)
-  updatedAt DateTime      @updatedAt
+  id          String        @id @default(cuid())
+  circleId    String
+  circle      ReadingCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  bookTitle   String?
+  chapterHint String?
+  activeNow   Int           @default(0)
+  isActive    Boolean       @default(true)
+  startedAt   DateTime      @default(now())
+  endedAt     DateTime?
+  updatedAt   DateTime      @updatedAt
 
-  @@unique([circleId])
+  @@index([circleId, isActive])
+}
+
+model CirclePost {
+  id         String         @id @default(cuid())
+  circleId   String
+  circle     ReadingCircle  @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User           @relation("CirclePosts", fields: [authorId], references: [id], onDelete: Cascade)
+
+  type       CirclePostType
+
+  // MARGINALIA fields
+  quote      String?        @db.Text
+  chapter    String?
+  reflection String?        @db.Text
+
+  // DISCUSSION fields
+  title      String?
+  body       String?        @db.Text
+
+  echoCount  Int            @default(0)
+  replyCount Int            @default(0)
+  isPinned   Boolean        @default(false)
+  isRemoved  Boolean        @default(false)
+
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  echoes     CirclePostEcho[]
+  replies    CirclePostReply[]
+
+  @@index([circleId, createdAt])
+  @@index([circleId, isRemoved])
+  @@index([authorId])
+}
+
+model CirclePostEcho {
+  id        String     @id @default(cuid())
+  postId    String
+  post      CirclePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation("CirclePostEchoes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model CirclePostReply {
+  id        String     @id @default(cuid())
+  postId    String
+  post      CirclePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User       @relation("CirclePostReplies", fields: [authorId], references: [id], onDelete: Cascade)
+  body      String     @db.Text
+  isRemoved Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([postId, createdAt])
+  @@index([authorId])
+}
+
+model CircleJoinRequest {
+  id          String                  @id @default(cuid())
+  circleId    String
+  circle      ReadingCircle           @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User                    @relation("CircleJoinRequests", fields: [userId], references: [id], onDelete: Cascade)
+  message     String?                 @db.VarChar(300)
+  status      CircleJoinRequestStatus @default(PENDING)
+  reviewedBy  String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@unique([circleId, userId])
+  @@index([circleId, status])
+  @@index([userId])
 }
 
 model MarginaliaPost {

@@ -101,6 +101,9 @@ export function computeRank(
 
   // Find the highest rank the user qualifies for
   let current = ranks[0];
+  if (!current) {
+    return { rank: null, nextRank: null, xpIntoLevel: totalXp, xpNeeded: 0, progressPct: 100 };
+  }
   for (const r of ranks) {
     if (totalXp >= r.xpRequired) current = r;
     else break;
@@ -109,15 +112,13 @@ export function computeRank(
   const currentIndex = ranks.indexOf(current);
   const nextRank = ranks[currentIndex + 1] ?? null;
 
-  const xpIntoLevel = nextRank
-    ? totalXp - current.xpRequired
-    : totalXp - current.xpRequired;
+  const xpIntoLevel = totalXp - current.xpRequired;
 
   const xpNeeded = nextRank
     ? nextRank.xpRequired - current.xpRequired
     : 0;
 
-  const progressPct = nextRank
+  const progressPct = nextRank && xpNeeded > 0
     ? Math.min(100, Math.round((xpIntoLevel / xpNeeded) * 100))
     : 100;
 
@@ -137,12 +138,12 @@ export async function grantXp(
 
   // Idempotency: LIBRARY_ADD, REVIEW_SUBMIT, BOOK_COMPLETE, CHAPTER_READ
   // are once-per-content-per-user. Check by (userId, source, meta.contentId).
-  if (meta.contentId && ['LIBRARY_ADD', 'REVIEW_SUBMIT', 'BOOK_COMPLETE', 'CHAPTER_READ'].includes(source)) {
+  if (meta['contentId'] && ['LIBRARY_ADD', 'REVIEW_SUBMIT', 'BOOK_COMPLETE', 'CHAPTER_READ'].includes(source)) {
     const existing = await prisma.xpEvent.findFirst({
       where: {
         userId,
         source,
-        meta: { path: ['contentId'], equals: meta.contentId },
+        meta: { path: ['contentId'], equals: meta['contentId'] as string },
       },
     });
     if (existing) return { granted: false, amount: 0, totalXp: -1 };
@@ -154,7 +155,7 @@ export async function grantXp(
       where: {
         userId,
         source,
-        meta: { path: ['streakDay'], equals: meta.streakDay },
+        meta: { path: ['streakDay'], equals: meta['streakDay'] as number },
       },
     });
     if (existing) return { granted: false, amount: 0, totalXp: -1 };
@@ -163,7 +164,7 @@ export async function grantXp(
   // Write event + increment totalXp atomically
   const [, updated] = await prisma.$transaction([
     prisma.xpEvent.create({
-      data: { userId, source, amount, meta },
+      data: { userId, source, amount, meta: meta as Record<string, string | number | boolean | null> },
     }),
     prisma.user.update({
       where: { id: userId },

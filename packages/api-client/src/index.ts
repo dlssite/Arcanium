@@ -115,9 +115,44 @@ import type {
   AdminRankDefinition,
   AdminRankInput,
   XpConfig,
+  // Circle types
+  CircleListResponse,
+  CircleSummary,
+  CircleDetail,
+  CirclePost,
+  CirclePostList,
+  CirclePostReply,
+  CirclePostReplyList,
+  CircleEchoResponse,
+  CircleSession,
+  CircleMember,
+  CircleJoinRequest,
+  CreateCircleInput,
+  UpdateCircleInput,
+  CreateCirclePostInput,
+  CreateCircleReplyInput,
+  StartSessionInput,
+  CircleListParams,
+  CirclePostListParams,
+  CircleReplyListParams,
+  AdminCircleListResponse,
+  AdminCircleSummary,
+  AdminCircleDetail,
+  AdminCreateCircleInput,
+  CircleConfig,
+  AdminCircleListParams,
 } from '@arcanium/types';
 
 export type { AdminRankDefinition, AdminRankInput, RankDefinition, DefaultAvatar, XpConfig };
+export type {
+  CircleListResponse, CircleSummary, CircleDetail,
+  CirclePost, CirclePostList, CirclePostReply, CirclePostReplyList,
+  CircleEchoResponse, CircleSession, CircleMember, CircleJoinRequest,
+  CreateCircleInput, UpdateCircleInput, CreateCirclePostInput,
+  CreateCircleReplyInput, StartSessionInput,
+  AdminCircleListResponse, AdminCircleSummary, AdminCircleDetail,
+  AdminCreateCircleInput, CircleConfig,
+};
 
 export const authApi = {
   register: (body: RegisterInput) =>
@@ -942,4 +977,154 @@ export const adminApi = {
   /** POST /api/v1/admin/xp-config/reset — restore all values to hardcoded defaults */
   resetXpConfig: () =>
     apiClient.post<XpConfig>('/api/v1/admin/xp-config/reset'),
+
+  // ── Reading Circle Management ──────────────────────────────────────────────
+
+  listCircles: (params?: AdminCircleListParams) =>
+    apiClient.get<AdminCircleListResponse>(`/api/v1/admin/circles${buildQs(params)}`),
+
+  getCircle: (circleId: string) =>
+    apiClient.get<AdminCircleDetail>(`/api/v1/admin/circles/${circleId}`),
+
+  createCircle: (body: AdminCreateCircleInput) =>
+    apiClient.post<AdminCircleSummary>('/api/v1/admin/circles', body),
+
+  updateCircle: (circleId: string, body: Partial<AdminCreateCircleInput> & { isArchived?: boolean; featuredOrder?: number }) =>
+    apiClient.patch<AdminCircleSummary>(`/api/v1/admin/circles/${circleId}`, body),
+
+  deleteCircle: (circleId: string) =>
+    apiClient.delete<{ deleted: boolean; id: string }>(`/api/v1/admin/circles/${circleId}`),
+
+  featureCircle: (circleId: string, body: { isFeatured: boolean; featuredOrder?: number }) =>
+    apiClient.patch<AdminCircleSummary>(`/api/v1/admin/circles/${circleId}/feature`, body),
+
+  listCircleMembers: (circleId: string, params?: { page?: number; limit?: number }) =>
+    apiClient.get<CircleMember[]>(`/api/v1/admin/circles/${circleId}/members${buildQs(params)}`),
+
+  removeCircleMember: (circleId: string, userId: string) =>
+    apiClient.delete<{ removed: boolean; userId: string }>(`/api/v1/admin/circles/${circleId}/members/${userId}`),
+
+  listCirclePosts: (circleId: string, params?: { page?: number; limit?: number; isRemoved?: boolean }) =>
+    apiClient.get<{ data: CirclePost[]; total: number; page: number; hasMore: boolean }>(`/api/v1/admin/circles/${circleId}/posts${buildQs(params)}`),
+
+  removeCirclePost: (circleId: string, postId: string) =>
+    apiClient.delete<{ removed: boolean; postId: string }>(`/api/v1/admin/circles/${circleId}/posts/${postId}`),
+
+  listCircleReplies: (circleId: string, postId: string) =>
+    apiClient.get<CirclePostReply[]>(`/api/v1/admin/circles/${circleId}/posts/${postId}/replies`),
+
+  removeCircleReply: (circleId: string, postId: string, replyId: string) =>
+    apiClient.delete<{ removed: boolean; replyId: string }>(`/api/v1/admin/circles/${circleId}/posts/${postId}/replies/${replyId}`),
+
+  listCircleRequests: (circleId: string, params?: { status?: string }) =>
+    apiClient.get<CircleJoinRequest[]>(`/api/v1/admin/circles/${circleId}/requests${buildQs(params)}`),
+
+  approveCircleRequest: (circleId: string, requestId: string) =>
+    apiClient.patch<{ approved: boolean; requestId: string }>(`/api/v1/admin/circles/${circleId}/requests/${requestId}/approve`, {}),
+
+  rejectCircleRequest: (circleId: string, requestId: string) =>
+    apiClient.patch<{ rejected: boolean; requestId: string }>(`/api/v1/admin/circles/${circleId}/requests/${requestId}/reject`, {}),
+
+  getCircleConfig: () =>
+    apiClient.get<CircleConfig>('/api/v1/admin/circle-config'),
+
+  updateCircleConfig: (body: CircleConfig) =>
+    apiClient.patch<CircleConfig>('/api/v1/admin/circle-config', body),
+};
+
+// ---------------------------------------------------------------------------
+// Circles API  — /api/v1/community/circles/...
+// ---------------------------------------------------------------------------
+
+export const circlesApi = {
+  // ── Directory & detail ────────────────────────────────────────────────────
+
+  list: (params?: CircleListParams) =>
+    apiClient.get<CircleListResponse>(`/api/v1/community/circles${buildQs(params)}`),
+
+  get: (circleId: string) =>
+    apiClient.get<CircleDetail>(`/api/v1/community/circles/${circleId}`),
+
+  // ── CRUD ─────────────────────────────────────────────────────────────────
+
+  create: (body: CreateCircleInput) =>
+    apiClient.post<CircleSummary>('/api/v1/community/circles', body),
+
+  update: (circleId: string, body: UpdateCircleInput) =>
+    apiClient.patch<CircleSummary>(`/api/v1/community/circles/${circleId}`, body),
+
+  delete: (circleId: string) =>
+    apiClient.delete<{ deleted: boolean }>(`/api/v1/community/circles/${circleId}`),
+
+  // ── Membership ───────────────────────────────────────────────────────────
+
+  join: (circleId: string, body?: { message?: string }) =>
+    apiClient.post<{ joined: boolean; status: string }>(`/api/v1/community/circles/${circleId}/join`, body ?? {}),
+
+  leave: (circleId: string) =>
+    apiClient.delete<{ left: boolean }>(`/api/v1/community/circles/${circleId}/leave`),
+
+  // ── Join requests ─────────────────────────────────────────────────────────
+
+  listRequests: (circleId: string, params?: { status?: string }) =>
+    apiClient.get<CircleJoinRequest[]>(`/api/v1/community/circles/${circleId}/requests${buildQs(params)}`),
+
+  approveRequest: (circleId: string, requestId: string) =>
+    apiClient.patch<{ approved: boolean; requestId: string }>(`/api/v1/community/circles/${circleId}/requests/${requestId}/approve`, {}),
+
+  rejectRequest: (circleId: string, requestId: string) =>
+    apiClient.patch<{ rejected: boolean; requestId: string }>(`/api/v1/community/circles/${circleId}/requests/${requestId}/reject`, {}),
+
+  // ── Members ───────────────────────────────────────────────────────────────
+
+  listMembers: (circleId: string) =>
+    apiClient.get<CircleMember[]>(`/api/v1/community/circles/${circleId}/members`),
+
+  promote: (circleId: string, userId: string) =>
+    apiClient.patch<{ id: string; userId: string; role: string }>(`/api/v1/community/circles/${circleId}/members/${userId}/promote`, {}),
+
+  demote: (circleId: string, userId: string) =>
+    apiClient.patch<{ id: string; userId: string; role: string }>(`/api/v1/community/circles/${circleId}/members/${userId}/demote`, {}),
+
+  removeMember: (circleId: string, userId: string) =>
+    apiClient.delete<{ removed: boolean }>(`/api/v1/community/circles/${circleId}/members/${userId}`),
+
+  // ── Posts ─────────────────────────────────────────────────────────────────
+
+  listPosts: (circleId: string, params?: CirclePostListParams) =>
+    apiClient.get<CirclePostList>(`/api/v1/community/circles/${circleId}/posts${buildQs(params)}`),
+
+  createPost: (circleId: string, body: CreateCirclePostInput) =>
+    apiClient.post<CirclePost>(`/api/v1/community/circles/${circleId}/posts`, body),
+
+  deletePost: (circleId: string, postId: string) =>
+    apiClient.delete<{ removed: boolean }>(`/api/v1/community/circles/${circleId}/posts/${postId}`),
+
+  echoPost: (circleId: string, postId: string) =>
+    apiClient.post<CircleEchoResponse>(`/api/v1/community/circles/${circleId}/posts/${postId}/echo`),
+
+  pinPost: (circleId: string, postId: string) =>
+    apiClient.patch<{ id: string; isPinned: boolean }>(`/api/v1/community/circles/${circleId}/posts/${postId}/pin`, {}),
+
+  // ── Replies ───────────────────────────────────────────────────────────────
+
+  listReplies: (circleId: string, postId: string, params?: CircleReplyListParams) =>
+    apiClient.get<CirclePostReplyList>(`/api/v1/community/circles/${circleId}/posts/${postId}/replies${buildQs(params)}`),
+
+  createReply: (circleId: string, postId: string, body: CreateCircleReplyInput) =>
+    apiClient.post<CirclePostReply>(`/api/v1/community/circles/${circleId}/posts/${postId}/replies`, body),
+
+  deleteReply: (circleId: string, postId: string, replyId: string) =>
+    apiClient.delete<{ removed: boolean }>(`/api/v1/community/circles/${circleId}/posts/${postId}/replies/${replyId}`),
+
+  // ── Sessions ─────────────────────────────────────────────────────────────
+
+  listSessions: (circleId: string) =>
+    apiClient.get<CircleSession[]>(`/api/v1/community/circles/${circleId}/sessions`),
+
+  startSession: (circleId: string, body: StartSessionInput) =>
+    apiClient.post<CircleSession>(`/api/v1/community/circles/${circleId}/sessions`, body),
+
+  endSession: (circleId: string) =>
+    apiClient.patch<CircleSession>(`/api/v1/community/circles/${circleId}/sessions/active/end`, {}),
 };
