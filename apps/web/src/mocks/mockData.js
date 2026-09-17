@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @fileoverview Centralized mock data store — single source of truth for all hardcoded
  * data previously scattered across HomeView, LibraryView, ProfileView, ExploreView,
  * LiberView, LiberCompanionDock, and CommunityView.
@@ -23,7 +23,7 @@ import coverWind         from '../assets/cover_wind.png';
 import coverCharlotte    from '../assets/cover_charlotte.png';
 import coverCartographer from '../assets/cover_cartographer.png';
 import avatarImg         from '../assets/avatar.png';
-import liberHeroImg      from '../assets/liber_hero.jpg';
+import liberHeroImg      from '../assets/liber.jpeg';
 
 // Re-export assets so components get them from here, not from direct imports
 export { avatarImg, liberHeroImg };

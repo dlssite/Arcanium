@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 // TODO: Full TypeScript typing — tracked as M5 in web-app-audit.md.
 // File was converted from .jsx during the M1 view relocation sprint.
 // Proper prop interfaces and return types to be added in the Phase 4 TS pass.
@@ -15,7 +15,7 @@ import {
   RefreshCw,
   Scroll,
 } from 'lucide-react';
-import liberHeroImg from '../../../assets/liber_hero.jpg';
+import liberHeroImg from '../../../assets/liber.jpeg';
 import { avatarImg, LIBER_VERSION } from '../../../mocks/mockData.js';
 import { useLiberChat } from '../../../hooks/useLiberChat.js';
 import { features } from '../../../config/features.ts';
@@ -81,8 +81,8 @@ export default function LiberView({ onBack }) {
           </div>
         </div>
 
-        <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white dark:border-[#352B44] shadow-2xs ring-1 ring-[#ECE7DF] dark:ring-[#47395D]">
-          <img src={avatarImg} alt="Liber the Librarian" className="w-full h-full object-cover" />
+        <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#DE9B35] dark:border-[#DE9B35] shadow-2xs ring-1 ring-[#ECE7DF] dark:ring-[#47395D]">
+          <img src={liberHeroImg} alt="Liber the Librarian" className="w-full h-full object-cover object-top" />
         </div>
       </header>
 
@@ -94,11 +94,11 @@ export default function LiberView({ onBack }) {
 
           {/* Liber Portrait Card */}
           <div className="relative rounded-3xl overflow-hidden shadow-[0_4px_24px_rgba(67,50,88,0.06)] dark:shadow-dark-card border border-[#ECE7DF] dark:border-[#352B44] bg-white dark:bg-[#1D1726] group flex-shrink-0">
-            <div className="relative h-48 sm:h-56 lg:h-52 xl:h-64 w-full overflow-hidden bg-[#2D2335]">
+            <div className="relative aspect-square w-full overflow-hidden bg-[#2D2335]">
               <img
                 src={liberHeroImg}
                 alt="Liber the Librarian Scholar"
-                className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-700"
+                className="w-full h-full object-cover object-top group-hover:scale-102 transition-transform duration-700"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#201826]/80 via-transparent to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
@@ -150,8 +150,8 @@ export default function LiberView({ onBack }) {
             {/* Desktop Card Header */}
             <div className="flex-shrink-0 hidden lg:flex items-center justify-between px-6 py-3.5 border-b border-[#ECE7DF] dark:border-[#352B44] bg-[#FAF8F5]/80 dark:bg-[#17121F]/80 rounded-t-3xl">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full overflow-hidden border border-stone-200 dark:border-stone-700 ring-2 ring-purple-900/10">
-                  <img src={avatarImg} alt="Liber" className="w-full h-full object-cover" />
+                <div className="w-9 h-9 rounded-full overflow-hidden border border-[#DE9B35] dark:border-[#DE9B35] ring-2 ring-purple-900/10">
+                  <img src={liberHeroImg} alt="Liber" className="w-full h-full object-cover object-top" />
                 </div>
                 <div>
                   <h3 className="font-serif font-bold text-sm text-[#43335A] dark:text-[#F1ECF7]">

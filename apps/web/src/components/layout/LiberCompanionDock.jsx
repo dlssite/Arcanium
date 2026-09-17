@@ -1,4 +1,4 @@
-﻿import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Sparkles,
   Send,
@@ -7,9 +7,10 @@ import {
   Volume2,
   Maximize2,
 } from 'lucide-react';
-import liberHeroImg from '../../assets/liber_hero.jpg';
+import liberHeroImg from '../../assets/liber.jpeg';
 import { avatarImg } from '../../mocks/mockData.js';
 import { useLiberChat } from '../../hooks/useLiberChat.js';
+import { FormattedMessage } from '../../features/liber/components/FormattedMessage';
 
 /**
  * LiberCompanionDock — the right-rail chat panel visible on desktop Home & Explore tabs.
@@ -32,8 +33,8 @@ export default function LiberCompanionDock({ onExpandFull }) {
       {/* Dock Header */}
       <div className="p-4 border-b border-[#ECE7DF] dark:border-[#2C2338] bg-[#FAF8F5]/80 dark:bg-[#17111F]/80 backdrop-blur-md flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-stone-200 dark:border-stone-700 ring-2 ring-purple-900/10">
-            <img src={avatarImg} alt="Liber" className="w-full h-full object-cover" />
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-[#DE9B35] dark:border-[#DE9B35] ring-2 ring-purple-900/10">
+            <img src={liberHeroImg} alt="Liber" className="w-full h-full object-cover object-top" />
           </div>
           <div>
             <h3 className="font-serif font-bold text-sm text-[#43335A] dark:text-[#F1ECF7] tracking-wider uppercase">
@@ -59,8 +60,8 @@ export default function LiberCompanionDock({ onExpandFull }) {
 
       {/* Hero Mini Banner */}
       <div className="p-3 border-b border-[#ECE7DF] dark:border-[#2C2338] bg-gradient-to-b from-[#F5F0E8] to-[#FAF8F5] dark:from-[#211A29] dark:to-[#17111F]">
-        <div className="relative rounded-xl overflow-hidden h-28 border border-stone-200 dark:border-stone-700/60 shadow-xs">
-          <img src={liberHeroImg} alt="Liber" className="w-full h-full object-cover" />
+        <div className="relative rounded-xl overflow-hidden h-44 border border-stone-200 dark:border-stone-700/60 shadow-xs">
+          <img src={liberHeroImg} alt="Liber" className="w-full h-full object-cover object-top" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-2">
             <span className="text-[11px] font-semibold text-white flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-[#FFDE88] fill-[#FFDE88]" />
@@ -83,7 +84,7 @@ export default function LiberCompanionDock({ onExpandFull }) {
                     : 'bg-[#F3EFEA] dark:bg-[#251D30] text-[#2D223B] dark:text-[#F1ECF7] border border-[#E8E2D8] dark:border-[#382C48] rounded-tl-sm'
                 }`}
               >
-                {m.text}
+                {isUser ? m.text : <FormattedMessage text={m.text} />}
               </div>
 
               {!isUser && m.actions && (

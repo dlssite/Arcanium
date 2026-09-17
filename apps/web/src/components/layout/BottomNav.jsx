@@ -4,12 +4,10 @@ import { avatarImg } from '../../mocks/mockData.js';
 import { useUser } from '../../hooks/useUser.js';
 import { features } from '../../config/features.ts';
 import arcaniumLogo from '../../assets/arcanium.png';
+import liberAvatar from '../../assets/liber.jpeg';
 
 export default function BottomNav({ activeTab, setActiveTab }) {
   const { user } = useUser();
-
-  // Liber's avatar (the AI companion) — separate from the user avatar
-  const liberAvatar = avatarImg;
 
   const navItems = [
     { id: 'home',    label: 'Home',     logo: true },
@@ -80,7 +78,7 @@ export default function BottomNav({ activeTab, setActiveTab }) {
                       : 'bg-gradient-to-tr from-[#55406E] via-[#664C85] to-[#7B5B9F] group-hover:scale-105 shadow-stone-400/20'
                   }`}>
                     <div className="w-full h-full rounded-full overflow-hidden border-2 border-white/90 dark:border-[#1E1728] flex items-center justify-center bg-[#43335A] relative">
-                      <img src={liberAvatar} alt="Liber" className="w-full h-full object-cover" />
+                      <img src={liberAvatar} alt="Liber" className="w-full h-full object-cover object-top" />
                       <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#DE9B35] rounded-full border border-white dark:border-[#161020] flex items-center justify-center shadow-xs">
                         <Sparkles className="w-1.5 h-1.5 text-white fill-white" />
                       </div>
