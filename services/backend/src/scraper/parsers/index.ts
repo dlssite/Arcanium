@@ -13,6 +13,7 @@ import { ContentProvider }     from '../../providers/ContentProvider.js';
 import { MangaDexProvider }    from '../../providers/MangaDexProvider.js';
 import { OpenLibraryProvider } from '../../providers/OpenLibraryProvider.js';
 import { RSSFeedProvider }     from '../../providers/RSSFeedProvider.js';
+import { WattpadProvider }     from '../../providers/WattpadProvider.js';
 import { WebScraperProvider }  from '../../providers/WebScraperProvider.js';
 
 export type { ContentMetadata, ChapterRef } from '../../providers/ContentProvider.js';
@@ -27,6 +28,7 @@ export { ContentProvider }                  from '../../providers/ContentProvide
 const PROVIDERS: ContentProvider[] = [
   new MangaDexProvider(),    // mangadex.org — REST API, image content
   new OpenLibraryProvider(), // openlibrary.org — REST API, public-domain books
+  new WattpadProvider(),     // wattpad.com — web novels, user-generated stories
   new RSSFeedProvider(),     // any /feed, /rss, /atom URL — web serials
   new WebScraperProvider(),  // MUST be last — canHandle() always returns true
 ];

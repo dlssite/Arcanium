@@ -21,6 +21,13 @@ const SCRAPERS = [
     requestDelayMs: 1500,
   },
   {
+    name:           'Wattpad Story Scraper',
+    targetDomain:   'wattpad.com',
+    selectorType:   'CHEERIO',
+    enabled:        true,
+    requestDelayMs: 1200,
+  },
+  {
     name:           'MangaDex API Connector',
     targetDomain:   'mangadex.org',
     selectorType:   'REST',
