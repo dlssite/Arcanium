@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Flame, Play, Pause, Target, Check,
   ChevronRight, ChevronLeft,
-  BookOpen, Sparkles,
+  BookOpen, Sparkles, Star, BookMarked, CheckCircle2,
   LayoutGrid, ScrollText, BookText, Library, Rows,
   Feather, ShieldCheck, Clock, ArrowRight,
 } from 'lucide-react';
@@ -152,6 +152,7 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
   const [selectedBook, setSelectedBook] = useState<Content | null>(null);
   const [showCreatorModal, setShowCreatorModal] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const featuredCarouselRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
   const { user, dailyGoal, hasUnreadNotifications } = useUser();
@@ -196,6 +197,10 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
 
   const scrollCarousel = (direction: 'left' | 'right') => {
     carouselRef.current?.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
+  };
+
+  const scrollFeaturedCarousel = (direction: 'left' | 'right') => {
+    featuredCarouselRef.current?.scrollBy({ left: direction === 'left' ? -220 : 220, behavior: 'smooth' });
   };
 
   return (
@@ -445,18 +450,52 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
       {/* ── Featured Books — admin-curated ─────────────────────────────────── */}
       {homeFeatured.length > 0 && (
         <section className="mt-8 w-full">
-          <div className="flex items-center gap-2 mb-3.5">
-            <Sparkles className="w-4 h-4 text-[#DE9B35] fill-[#DE9B35]" />
-            <h2 className="font-serif font-bold text-lg sm:text-xl text-[#2D223B] dark:text-[#F1ECF7]">
-              Featured Books
-            </h2>
+          <div className="flex items-center justify-between mb-3.5">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-[#DE9B35]/15 flex items-center justify-center text-[#DE9B35]">
+                <Sparkles className="w-3.5 h-3.5 fill-[#DE9B35]" />
+              </div>
+              <h2 className="font-serif font-bold text-lg sm:text-xl text-[#2D223B] dark:text-[#F1ECF7]">
+                Featured Books
+              </h2>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#DE9B35]/15 text-[#DE9B35]">
+                Curated
+              </span>
+            </div>
+
+            {/* Desktop scroll arrows */}
+            <div className="hidden sm:flex items-center gap-1">
+              <button
+                onClick={() => scrollFeaturedCarousel('left')}
+                aria-label="Scroll left"
+                className="w-7 h-7 rounded-full bg-white dark:bg-[#1E1728] border border-[#ECE7DF] dark:border-[#352B44] flex items-center justify-center text-[#43335A] dark:text-[#E2D9EC] hover:bg-stone-50 dark:hover:bg-[#281F36] active:scale-95 transition-all shadow-2xs cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => scrollFeaturedCarousel('right')}
+                aria-label="Scroll right"
+                className="w-7 h-7 rounded-full bg-white dark:bg-[#1E1728] border border-[#ECE7DF] dark:border-[#352B44] flex items-center justify-center text-[#43335A] dark:text-[#E2D9EC] hover:bg-stone-50 dark:hover:bg-[#281F36] active:scale-95 transition-all shadow-2xs cursor-pointer"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+
+          {/* Scrollable carousel on mobile / 2-col responsive grid on desktop */}
+          <div
+            ref={featuredCarouselRef}
+            className="flex lg:grid lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-x-auto no-scrollbar pb-3 pt-1 w-full scroll-smooth snap-x snap-mandatory"
+          >
             {homeFeatured.map((pin) => {
               const c = pin.content;
               const inLib = isInLibrary(c.id);
+              const genres = (c.metadata as { genres?: string[] })?.genres ?? [];
+              const genre = genres[0] ?? '';
+              const ratingVal = typeof c.rating === 'number' ? c.rating : (Number(c.rating) || null);
+
               return (
-                <button
+                <div
                   key={pin.id}
                   onClick={() => setSelectedBook({
                     id: c.id, title: c.title, slug: c.slug,
@@ -466,42 +505,114 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
                     author: c.author ?? null, sourceSite: c.sourceSite ?? null,
                     sourceUrl: '', metadata: c.metadata,
                   } as Content)}
-                  className="bg-white dark:bg-[#1D1726] rounded-2xl p-3 border border-[#ECE7DF] dark:border-[#352B44] shadow-xs hover:shadow-md hover:border-[#D4C8EA] dark:hover:border-[#4A3762] active:scale-95 transition-all text-left group relative"
+                  className="w-[300px] sm:w-[340px] lg:w-full flex-shrink-0 snap-start bg-gradient-to-br from-[#FAF7F2] via-[#F5EFE6] to-[#EFE7DA] dark:from-[#21182C] dark:via-[#1C1527] dark:to-[#171020] border border-[#E9E1D2] dark:border-[#3A2C4D] rounded-3xl p-4 sm:p-4.5 shadow-md hover:shadow-xl hover:border-[#DE9B35]/40 dark:hover:border-[#725499]/60 transition-all duration-300 relative group flex gap-3.5 sm:gap-4 items-center cursor-pointer active:scale-[0.98]"
                 >
-                  {/* Featured badge */}
-                  <span className="absolute top-2 left-2 z-10 flex items-center gap-1 px-1.5 py-0.5 bg-[#DE9B35] text-white text-[9px] font-bold uppercase tracking-wide rounded-full shadow-sm">
-                    <Sparkles className="w-2.5 h-2.5" />
-                    Featured
-                  </span>
-                  {/* Cover */}
-                  <div className="rounded-xl overflow-hidden bg-stone-100 dark:bg-[#2A2136] aspect-[3/4] mb-2.5">
-                    {c.coverImageUrl ? (
-                      <img src={c.coverImageUrl} alt={c.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="w-8 h-8 text-stone-300 dark:text-stone-600" />
-                      </div>
-                    )}
+                  {/* Left: Book Cover with Ambient Glow */}
+                  <div className="relative flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    <div className="absolute -inset-1 bg-gradient-to-br from-[#DE9B35]/30 to-[#5D497D]/30 rounded-2xl blur-md -z-10 opacity-70 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-[100px] sm:w-[110px] h-[140px] sm:h-[154px] rounded-2xl overflow-hidden shadow-[0_8px_20px_-4px_rgba(45,34,59,0.35)] dark:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.6)] border border-stone-200/90 dark:border-stone-700/80 bg-stone-100 dark:bg-[#251D30] relative">
+                      {/* Featured Ribbon */}
+                      <span className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-0.5 bg-[#DE9B35] text-white text-[8px] font-extrabold uppercase tracking-wider rounded-full shadow-sm">
+                        <Sparkles className="w-2.5 h-2.5 fill-white" />
+                        Featured
+                      </span>
+
+                      {c.coverImageUrl ? (
+                        <img
+                          src={c.coverImageUrl}
+                          alt={c.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#3D2D55] to-[#251A33] text-white/40">
+                          <BookOpen className="w-8 h-8 mb-1" />
+                          <span className="text-[8px] uppercase tracking-wider font-semibold">Arcanium</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {/* Info */}
-                  <h3 className="font-semibold text-xs text-[#2D223B] dark:text-[#F1ECF7] line-clamp-2 leading-tight">{c.title}</h3>
-                  <p className="text-[10px] text-[#80778B] dark:text-[#9F94AC] mt-0.5 truncate">{c.author ?? 'Unknown'}</p>
-                  {c.chapterCount > 0 && (
-                    <p className="text-[10px] text-[#A095AC] dark:text-[#7A6F88] mt-0.5">{c.chapterCount} chapters</p>
-                  )}
-                  {/* Add to library quick-action */}
-                  {!inLib && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); addBook({ id: c.id, title: c.title, slug: c.slug, type: c.type as ContentType, status: c.status as 'ONGOING' | 'COMPLETED' | 'HIATUS' | 'CANCELLED' | 'UNKNOWN', synopsis: c.synopsis ?? null, coverImageUrl: c.coverImageUrl ?? null, rating: c.rating ?? 0, chapterCount: c.chapterCount, author: c.author ?? null, sourceSite: c.sourceSite ?? null, sourceUrl: '', metadata: c.metadata } as Content); }}
-                      className="mt-2 w-full text-[10px] font-semibold text-[#43335A] dark:text-[#C5BACF] bg-[#F2EDFA] dark:bg-[#2C213B] hover:bg-[#E8DFF5] dark:hover:bg-[#352844] rounded-lg py-1.5 transition-colors"
-                    >
-                      + Add to Library
-                    </button>
-                  )}
-                </button>
+
+                  {/* Right: Content Details & Play Button */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between h-[140px] sm:h-[154px]">
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="bg-[#51406B]/10 dark:bg-[#725499]/25 text-[#51406B] dark:text-[#C5B3DC] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#51406B]/15 dark:border-[#725499]/30 truncate">
+                          {genre || 'Codex'}
+                        </span>
+                        {ratingVal != null && ratingVal > 0 && (
+                          <span className="flex items-center gap-1 text-xs font-bold text-[#DE9B35] flex-shrink-0">
+                            <Star className="w-3.5 h-3.5 fill-[#DE9B35] text-[#DE9B35]" />
+                            <span>{ratingVal.toFixed(1)}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="font-serif font-bold text-base sm:text-lg text-[#2D223B] dark:text-[#F1ECF7] line-clamp-1 leading-snug group-hover:text-[#DE9B35] dark:group-hover:text-[#FFDE88] transition-colors mt-1">
+                        {c.title}
+                      </h3>
+                      <p className="text-xs text-[#7A7185] dark:text-[#A095AC] font-medium truncate mt-0.5">
+                        by {c.author ?? 'Unknown Author'}
+                      </p>
+
+                      {c.synopsis && (
+                        <p className="text-[11px] text-[#8C8397] dark:text-[#8E839C] line-clamp-1 leading-relaxed mt-1 italic opacity-90">
+                          {c.synopsis}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Footer Action Controls */}
+                    <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-[#EAE2D3] dark:border-[#2F2340]">
+                      {inLib ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <span>In Shelf</span>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addBook({
+                              id: c.id, title: c.title, slug: c.slug,
+                              type: c.type as ContentType, status: c.status as 'ONGOING' | 'COMPLETED' | 'HIATUS' | 'CANCELLED' | 'UNKNOWN',
+                              synopsis: c.synopsis ?? null, coverImageUrl: c.coverImageUrl ?? null,
+                              rating: c.rating ?? 0, chapterCount: c.chapterCount,
+                              author: c.author ?? null, sourceSite: c.sourceSite ?? null,
+                              sourceUrl: '', metadata: c.metadata,
+                            } as Content);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#F2EDFA] dark:bg-[#2C213B] text-[#43335A] dark:text-[#D1C6E2] hover:bg-[#E7DCF5] border border-[#DDD0EE] dark:border-[#3D2E52] transition-colors active:scale-95"
+                        >
+                          <BookMarked className="w-3 h-3 text-[#DE9B35]" />
+                          <span>+ Shelf</span>
+                        </button>
+                      )}
+
+                      {/* Circular Play / Inspect Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedBook({
+                            id: c.id, title: c.title, slug: c.slug,
+                            type: c.type as ContentType, status: c.status as 'ONGOING' | 'COMPLETED' | 'HIATUS' | 'CANCELLED' | 'UNKNOWN',
+                            synopsis: c.synopsis ?? null, coverImageUrl: c.coverImageUrl ?? null,
+                            rating: c.rating ?? 0, chapterCount: c.chapterCount,
+                            author: c.author ?? null, sourceSite: c.sourceSite ?? null,
+                            sourceUrl: '', metadata: c.metadata,
+                          } as Content);
+                        }}
+                        className="w-9 h-9 rounded-full bg-gradient-to-r from-[#43335A] to-[#553E73] hover:from-[#342647] hover:to-[#433159] dark:from-[#725499] dark:to-[#8663B2] text-white flex items-center justify-center shadow-md shadow-purple-950/20 active:scale-90 transition-all cursor-pointer flex-shrink-0"
+                        title="Inspect Tome"
+                      >
+                        <Play className="w-4 h-4 fill-white ml-0.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               );
             })}
+
+            <div className="w-4 sm:w-6 flex-shrink-0 lg:hidden" aria-hidden="true" />
           </div>
         </section>
       )}
