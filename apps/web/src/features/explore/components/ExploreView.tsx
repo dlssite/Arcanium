@@ -1,4 +1,4 @@
-﻿
+
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Sparkles, Star, Search, X,
@@ -44,7 +44,7 @@ function BookCardSkeleton() {
 
 export default function ExploreView() {
   const explore  = useExploreStore();
-  const { addBook, isInLibrary } = useLibrary();
+  const { addBook, removeBook, isInLibrary } = useLibrary();
   const { user } = useUser();
   const { isAuthenticated } = useAuthStore();
   const [activeGenre, setActiveGenre] = React.useState('All');
@@ -430,6 +430,14 @@ export default function ExploreView() {
           onRead={() => explore.clearSelection()}
           onAddToLibrary={(book: unknown) => { addBook(book as object); explore.clearSelection(); }}
           isInLibrary={isInLibrary(explore.selectedBook.id)}
+          onRemoveFromLibrary={
+            isInLibrary(explore.selectedBook.id)
+              ? () => {
+                  removeBook(String(explore.selectedBook.id));
+                  explore.clearSelection();
+                }
+              : undefined
+          }
           isAuthenticated={isAuthenticated}
           userId={user.id}
         />

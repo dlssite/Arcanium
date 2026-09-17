@@ -155,7 +155,7 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
 
   const navigate = useNavigate();
   const { user, dailyGoal, hasUnreadNotifications } = useUser();
-  const { currentlyReading, addBook, isInLibrary }  = useLibrary();
+  const { currentlyReading, addBook, removeBook, isInLibrary }  = useLibrary();
   const { isAuthenticated } = useAuthStore();
   const nowReading = currentlyReading as LibraryBook | null;
 
@@ -758,6 +758,14 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
             setSelectedBook(null);
           }}
           isInLibrary={isInLibrary(selectedBook.id)}
+          onRemoveFromLibrary={
+            isInLibrary(selectedBook.id)
+              ? () => {
+                  removeBook(String(selectedBook.id));
+                  setSelectedBook(null);
+                }
+              : undefined
+          }
           isAuthenticated={isAuthenticated}
           userId={user.id}
         />

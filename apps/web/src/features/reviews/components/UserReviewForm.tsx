@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StarRating } from './StarRating.js';
 import type { Review } from '@arcanium/types';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Sparkles, PenLine } from 'lucide-react';
 
 interface UserReviewFormProps {
   userReview: Review | null;
@@ -10,8 +10,16 @@ interface UserReviewFormProps {
   isLoading?: boolean;
 }
 
+const RATING_DESCRIPTIONS: Record<number, string> = {
+  1: 'Poor — Could not connect with this work',
+  2: 'Fair — Has some merits, but fell short',
+  3: 'Good — An enjoyable read',
+  4: 'Very Good — Highly recommended',
+  5: 'Masterpiece — An extraordinary journey',
+};
+
 /**
- * UserReviewForm — create or edit your own review
+ * UserReviewForm — create or edit user's reflection with illuminated Arcanium styling
  */
 export function UserReviewForm({
   userReview,
@@ -34,12 +42,12 @@ export function UserReviewForm({
     setError(null);
 
     if (rating < 1 || rating > 5) {
-      setError('Please select a rating');
+      setError('Please select a star rating');
       return;
     }
 
     if (textLength > 0 && (textLength < 50 || textLength > 2000)) {
-      setError('Review must be between 50 and 2000 characters');
+      setError('Reflection must be between 50 and 2,000 characters');
       return;
     }
 
@@ -47,32 +55,51 @@ export function UserReviewForm({
   };
 
   return (
-    <div className="mb-6 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-        {isEditing ? 'Edit Your Review' : 'Write a Review'}
-      </h3>
+    <div className="mb-6 p-5 bg-gradient-to-b from-[#FDFBF7] to-[#F7F2EA] dark:from-[#241A32] dark:to-[#1C1527] border border-[#E9E1D3] dark:border-[#3D2E52] rounded-2xl shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-[#43335A]/10 dark:bg-[#725499]/20 flex items-center justify-center text-[#43335A] dark:text-[#C5B3DC]">
+            <PenLine className="w-4 h-4" />
+          </div>
+          <h3 className="font-serif font-bold text-base text-[#2D223B] dark:text-[#F1ECF7]">
+            {isEditing ? 'Edit Your Reflection' : 'Leave Your Reflection'}
+          </h3>
+        </div>
+        {rating > 0 && (
+          <span className="text-[11px] font-medium text-[#DE9B35] dark:text-[#E8AA4C] bg-[#DE9B35]/10 px-2.5 py-0.5 rounded-full">
+            {RATING_DESCRIPTIONS[rating]}
+          </span>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Rating Input */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Rating
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C7286] dark:text-[#A79DB3] mb-2">
+            Your Rating
           </label>
-          <StarRating
-            value={rating}
-            onChange={setRating}
-            size="md"
-            interactive={!isLoading}
-          />
+          <div className="flex items-center gap-3">
+            <StarRating
+              value={rating}
+              onChange={setRating}
+              size="lg"
+              interactive={!isLoading}
+            />
+            {rating === 0 && (
+              <span className="text-xs text-[#8C8397] dark:text-[#8E839C] italic">
+                Tap to rate
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Review Text */}
         <div>
           <label
             htmlFor="reviewText"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            className="block text-xs font-semibold uppercase tracking-wider text-[#7C7286] dark:text-[#A79DB3] mb-2"
           >
-            Your Thoughts (optional)
+            Reader Reflections <span className="font-normal text-[11px] lowercase opacity-80">(optional)</span>
           </label>
           <textarea
             id="reviewText"
@@ -83,17 +110,17 @@ export function UserReviewForm({
             }}
             maxLength={2000}
             disabled={isLoading}
-            placeholder="Share your thoughts about this book... (50-2000 characters)"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            placeholder="What resonance did this tome hold for you? Share your impressions, favorite passages, or emotional resonance... (50-2000 characters)"
+            className="w-full px-3.5 py-3 border border-[#DDD5C7] dark:border-[#3D2E50] rounded-xl bg-white/90 dark:bg-[#191222]/90 text-[#2D223B] dark:text-[#F1ECF7] placeholder-[#9E95A8] dark:placeholder-[#6C607C] focus:outline-none focus:ring-2 focus:ring-[#DE9B35]/30 focus:border-[#DE9B35] disabled:opacity-50 text-xs sm:text-sm leading-relaxed transition-all resize-none shadow-inner"
             rows={4}
           />
-          <div className="mt-2 flex items-center justify-between">
-            <p className={`text-xs ${isTextValid ? 'text-gray-500' : 'text-red-600 dark:text-red-400'}`}>
-              {textLength === 0 ? 'Optional field' : `${textLength} / 2000 characters`}
+          <div className="mt-1.5 flex items-center justify-between text-[11px]">
+            <p className={isTextValid ? 'text-[#8C8397] dark:text-[#8E839C]' : 'text-red-500 font-medium'}>
+              {textLength === 0 ? 'Minimum 50 characters if written' : `${textLength} / 2,000 characters`}
             </p>
             {textLength > 0 && textLength < 50 && (
-              <p className="text-xs text-red-600 dark:text-red-400">
-                Minimum 50 characters
+              <p className="text-red-500 font-medium">
+                {50 - textLength} more characters needed
               </p>
             )}
           </div>
@@ -101,20 +128,24 @@ export function UserReviewForm({
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-700 dark:text-red-300">
+          <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/60 rounded-xl text-xs text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-1">
           <button
             type="submit"
             disabled={!isValid || isLoading}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+            className="px-5 py-2.5 bg-[#43335A] hover:bg-[#342647] dark:bg-[#725499] dark:hover:bg-[#604484] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-purple-950/20 active:scale-98 transition-all"
           >
-            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isEditing ? 'Update Review' : 'Submit Review'}
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-[#DE9B35]" />
+            )}
+            <span>{isEditing ? 'Update Reflection' : 'Publish Reflection'}</span>
           </button>
 
           {isEditing && onDelete && (
@@ -122,10 +153,10 @@ export function UserReviewForm({
               type="button"
               onClick={onDelete}
               disabled={isLoading}
-              className="px-4 py-2 bg-transparent border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2.5 bg-transparent border border-red-200 dark:border-red-900/60 text-red-500 dark:text-red-400 rounded-xl font-medium text-xs sm:text-sm flex items-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50 transition-colors"
             >
-              <Trash2 className="w-4 h-4" />
-              Delete
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete</span>
             </button>
           )}
         </div>

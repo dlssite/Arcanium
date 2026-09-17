@@ -30,7 +30,7 @@ export default function CollectionPage() {
   const { slug }                   = useParams<{ slug: string }>();
   const navigate                   = useNavigate();
   const { data: collection, isLoading, isError } = useCollection(slug ?? null);
-  const { addBook, isInLibrary }   = useLibrary();
+  const { addBook, removeBook, isInLibrary }   = useLibrary();
   const { user } = useUser();
   const { isAuthenticated } = useAuthStore();
   const [selected, setSelected]    = useState<null | object>(null);
@@ -168,6 +168,14 @@ export default function CollectionPage() {
           onClose={() => setSelected(null)}
           onAddToLibrary={b => addBook(b as never)}
           isInLibrary={isInLibrary((selected as { id: string }).id)}
+          onRemoveFromLibrary={
+            isInLibrary((selected as { id: string }).id)
+              ? () => {
+                  removeBook((selected as { id: string }).id);
+                  setSelected(null);
+                }
+              : undefined
+          }
           isAuthenticated={isAuthenticated}
           userId={user.id}
         />

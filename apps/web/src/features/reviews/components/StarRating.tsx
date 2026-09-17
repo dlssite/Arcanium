@@ -71,22 +71,22 @@ export function StarRating({
             onMouseLeave={() => interactive && setHoverValue(null)}
             onKeyDown={(e) => handleKeyDown(e, star)}
             disabled={readonly}
-            className={`${sizeClasses[size]} transition-colors flex-shrink-0 ${
-              interactive && !readonly ? 'cursor-pointer hover:text-yellow-400' : 'cursor-default'
-            } ${readonly ? 'cursor-default' : 'focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-yellow-400'}`}
+            className={`${sizeClasses[size]} transition-all duration-150 flex-shrink-0 ${
+              interactive && !readonly ? 'cursor-pointer hover:scale-110 active:scale-95' : 'cursor-default'
+            } ${readonly ? 'cursor-default' : 'focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#DE9B35]/50 rounded'}`}
             aria-label={`${star} stars`}
           >
             {isFilled ? (
-              <Star className="fill-yellow-400 text-yellow-400" />
+              <Star className="fill-[#DE9B35] text-[#DE9B35] drop-shadow-[0_1px_3px_rgba(222,155,53,0.3)] w-full h-full" />
             ) : isHalf ? (
               <div className="relative w-full h-full">
-                <Star className="text-gray-300 dark:text-gray-600 absolute inset-0" />
+                <Star className="text-stone-300 dark:text-[#433556] w-full h-full absolute inset-0" />
                 <div className="absolute inset-0 overflow-hidden w-1/2">
-                  <Star className="fill-yellow-400 text-yellow-400 w-full h-full" />
+                  <Star className="fill-[#DE9B35] text-[#DE9B35] drop-shadow-[0_1px_3px_rgba(222,155,53,0.3)] w-full h-full" />
                 </div>
               </div>
             ) : (
-              <Star className="text-gray-300 dark:text-gray-600" />
+              <Star className="text-stone-300 dark:text-[#433556] w-full h-full" />
             )}
           </button>
         );
