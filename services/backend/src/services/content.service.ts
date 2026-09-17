@@ -413,6 +413,257 @@ export async function getFeaturedSections(req: Request, res: Response): Promise<
 
 
 // ---------------------------------------------------------------------------
+// GET /api/v1/content/recommended
+// Personalised "Recommended for You" endpoint.
+//
+// Algorithm (3 stages):
+//   1. Build a preference profile from the user's ReadingProgress & ShelfEntry
+//      (genre score map + type score map).  Completed / actively-reading books
+//      count double.  Optional ?genre and ?type query params act as bias
+//      multipliers on top of the profile (they do NOT hard-filter the pool).
+//   2. Fetch a candidate pool (~150 non-CANCELLED, not-in-library books) and
+//      score each one against the profile.
+//   3. Sort by score DESC, apply a diversity cap (≤3 per genre in top results),
+//      return `limit` items (default 8).
+//
+// Unauthenticated / no-history fallback: top-rated books (averageRating DESC,
+// ratingCount DESC, createdAt DESC).
+//
+// Optional auth — req.user may or may not exist.
+// ---------------------------------------------------------------------------
+
+/** Weight multipliers applied to genre/type match scores. */
+const SCORE = {
+  genreExact:     5,   // 2+ overlapping genres
+  genrePartial:   3,   // 1 overlapping genre
+  typeMatch:      2,
+  ratingGood:     2,   // averageRating ≥ 4.0
+  ratingGreat:    1,   // averageRating ≥ 4.5 (stacks)
+  popular:        1,   // ratingCount ≥ 10
+  creatorUpload:  1,   // CREATOR_UPLOAD source (original content)
+  recency:        1,   // published within last 30 days
+  biasGenre:      4,   // bonus when the user explicitly requests a genre
+  biasType:       3,   // bonus when the user explicitly requests a type
+} as const;
+
+/** Max books of the same primary genre in the returned list. */
+const GENRE_DIVERSITY_CAP = 3;
+
+interface RecommendationQuery {
+  limit?: string;
+  genre?: string;  // bias genre (from filter pill)
+  type?:  string;  // bias type  (from filter chip)
+}
+
+export async function getRecommendations(req: Request, res: Response): Promise<void> {
+  const { limit: limitStr, genre: biasGenre, type: biasType } =
+    req.query as RecommendationQuery;
+
+  const limit = Math.min(Math.max(parseInt(limitStr ?? '8', 10) || 8, 1), 20);
+
+  // ── Stage 0: resolve user identity (optional auth) ──────────────────────
+  const userId: string | null = req.user?.id ?? null;
+
+  // ── Stage 1: build preference profile ───────────────────────────────────
+
+  /** genreScores[genre] = accumulated weight */
+  const genreScores: Record<string, number> = {};
+  /** typeScores[type] = accumulated weight */
+  const typeScores:  Record<string, number> = {};
+  /** Set of content IDs already in the user's library (to exclude) */
+  const libraryIds = new Set<string>();
+
+  if (userId) {
+    // Collect all shelf entries in one query
+    const shelfEntries = await prisma.shelfEntry.findMany({
+      where: { shelf: { userId } },
+      select: { contentId: true },
+    });
+    for (const e of shelfEntries) libraryIds.add(e.contentId);
+
+    // Collect reading progress with content metadata for genre/type extraction
+    const progressRows = await prisma.readingProgress.findMany({
+      where:  { userId },
+      select: {
+        status: true,
+        content: {
+          select: { type: true, metadata: true },
+        },
+      },
+    });
+
+    for (const row of progressRows) {
+      // Completed / currently reading = strong signal (×2)
+      const weight = (row.status === 'COMPLETED' || row.status === 'READING') ? 2 : 1;
+
+      // Type preference
+      const t = row.content.type;
+      typeScores[t] = (typeScores[t] ?? 0) + weight;
+
+      // Genre preferences (metadata.genres is string[])
+      const genres = (row.content.metadata as { genres?: string[] })?.genres ?? [];
+      for (const g of genres) {
+        genreScores[g] = (genreScores[g] ?? 0) + weight;
+      }
+    }
+  }
+
+  const hasProfile = Object.keys(genreScores).length > 0 || Object.keys(typeScores).length > 0;
+
+  // ── Fallback: no user / no history → top-rated ──────────────────────────
+  if (!hasProfile) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = {
+      status: { not: 'CANCELLED' },
+      averageRating: { not: null },
+    };
+    if (biasGenre && biasGenre !== 'All') {
+      where['metadata'] = { path: ['genres'], array_contains: biasGenre };
+    }
+    if (biasType && biasType !== 'All') {
+      where['type'] = biasType;
+    }
+
+    const items = await prisma.content.findMany({
+      where,
+      orderBy: [
+        { averageRating: 'desc' },
+        { ratingCount:   'desc' },
+        { createdAt:     'desc' },
+      ],
+      take: limit,
+    });
+
+    res.json({
+      data: {
+        items:         items.map(serializeContent),
+        total:         items.length,
+        page:          1,
+        limit,
+        hasMore:       false,
+        isPersonalised: false,
+        topGenres:     [],
+      },
+      error: null,
+    });
+    return;
+  }
+
+  // ── Stage 2: fetch candidate pool & score ────────────────────────────────
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const candidates = await prisma.content.findMany({
+    where: {
+      status: { not: 'CANCELLED' as const },
+      ...(libraryIds.size > 0 ? { id: { notIn: [...libraryIds] } } : {}),
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 150, // reasonable candidate pool
+  });
+
+  interface ScoredContent {
+    content: typeof candidates[0];
+    score:   number;
+    genres:  string[];
+  }
+
+  const scored: ScoredContent[] = candidates.map((c) => {
+    const genres = (c.metadata as { genres?: string[] })?.genres ?? [];
+    let score = 0;
+
+    // ── Genre match ────────────────────────────────────────────────────────
+    const matchingGenres = genres.filter((g) => (genreScores[g] ?? 0) > 0);
+    if (matchingGenres.length >= 2) {
+      score += SCORE.genreExact;
+    } else if (matchingGenres.length === 1) {
+      score += SCORE.genrePartial;
+    }
+    // Weight by how strong the user's preference is for those genres
+    for (const g of matchingGenres) {
+      score += Math.min(genreScores[g]! * 0.5, 3); // capped bonus per genre
+    }
+
+    // ── Type match ─────────────────────────────────────────────────────────
+    if ((typeScores[c.type] ?? 0) > 0) {
+      score += SCORE.typeMatch;
+      score += Math.min(typeScores[c.type]! * 0.3, 2);
+    }
+
+    // ── Quality signals ────────────────────────────────────────────────────
+    const rating = c.averageRating ?? (c.rating ?? 0);
+    if (rating >= 4.0) score += SCORE.ratingGood;
+    if (rating >= 4.5) score += SCORE.ratingGreat;
+    if ((c.ratingCount ?? 0) >= 10) score += SCORE.popular;
+
+    // ── Content signals ────────────────────────────────────────────────────
+    if (c.source === 'CREATOR_UPLOAD') score += SCORE.creatorUpload;
+    if (c.createdAt >= thirtyDaysAgo)  score += SCORE.recency;
+
+    // ── Bias boosts (genre pill / type chip selected by user) ─────────────
+    if (biasGenre && biasGenre !== 'All' && genres.includes(biasGenre)) {
+      score += SCORE.biasGenre;
+    }
+    if (biasType && biasType !== 'All' && c.type === biasType) {
+      score += SCORE.biasType;
+    }
+
+    return { content: c, score, genres };
+  });
+
+  // ── Stage 3: sort, diversify, slice ─────────────────────────────────────
+
+  scored.sort((a, b) => b.score - a.score);
+
+  // Diversity pass: track how many of each primary genre we've added
+  const genreCounts: Record<string, number> = {};
+  const results: typeof scored[0]['content'][] = [];
+
+  for (const { content, genres } of scored) {
+    if (results.length >= limit) break;
+
+    const primaryGenre = genres[0] ?? '__none__';
+    const count = genreCounts[primaryGenre] ?? 0;
+
+    if (count < GENRE_DIVERSITY_CAP) {
+      results.push(content);
+      genreCounts[primaryGenre] = count + 1;
+    }
+  }
+
+  // If diversity pass left us short (all genres hit cap), backfill from remainder
+  if (results.length < limit) {
+    const resultIds = new Set(results.map((r) => r.id));
+    for (const { content } of scored) {
+      if (results.length >= limit) break;
+      if (!resultIds.has(content.id)) {
+        results.push(content);
+        resultIds.add(content.id);
+      }
+    }
+  }
+
+  // Top genres for the frontend "Why this?" tooltip
+  const topGenres = Object.entries(genreScores)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([g]) => g);
+
+  res.json({
+    data: {
+      items:          results.map(serializeContent),
+      total:          results.length,
+      page:           1,
+      limit,
+      hasMore:        false,
+      isPersonalised: true,
+      topGenres,
+    },
+    error: null,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Connect Cards — public endpoint
 // ---------------------------------------------------------------------------
 

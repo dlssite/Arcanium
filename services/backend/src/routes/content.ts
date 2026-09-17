@@ -1,12 +1,20 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/authenticate.js';
-import { listContent, getContent, getChapter, getFeaturedSections } from '../services/content.service.js';
+import { optionalAuthenticate } from '../middleware/optionalAuthenticate.js';
+import {
+  listContent,
+  getContent,
+  getChapter,
+  getFeaturedSections,
+  getRecommendations,
+} from '../services/content.service.js';
 import { contentReviewsRouter } from './reviews.js';
 
 export const contentRouter: Router = Router();
 
 // Catalogue routes — public, no auth needed
-contentRouter.get('/featured', getFeaturedSections);   // must be before /:slug
+contentRouter.get('/featured', getFeaturedSections);          // must be before /:slug
+contentRouter.get('/recommended', optionalAuthenticate, getRecommendations); // personalised; must be before /:slug
 contentRouter.get('/', listContent);
 contentRouter.get('/:slug', getContent);
 

@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Sparkles, Star, Search, X,
   LayoutGrid, ScrollText, BookText, BookOpen, Library, Rows,
@@ -47,7 +48,11 @@ export default function ExploreView() {
   const { addBook, removeBook, isInLibrary } = useLibrary();
   const { user } = useUser();
   const { isAuthenticated } = useAuthStore();
-  const [activeGenre, setActiveGenre] = React.useState('All');
+
+  // Seed genre filter from ?genre= URL param (e.g. navigating from Home "See all")
+  const [searchParams] = useSearchParams();
+  const initialGenre = searchParams.get('genre') ?? 'All';
+  const [activeGenre, setActiveGenre] = React.useState(initialGenre);
 
   // ── Search state ─────────────────────────────────────────────────────────
   // Read the store value (set by the desktop header omnibar) as the initial

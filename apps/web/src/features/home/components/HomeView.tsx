@@ -7,7 +7,7 @@ import {
   ChevronRight, ChevronLeft,
   BookOpen, Sparkles, Star, BookMarked, CheckCircle2,
   LayoutGrid, ScrollText, BookText, Library, Rows,
-  Feather, ShieldCheck, Clock, ArrowRight,
+  Feather, ShieldCheck, Clock, ArrowRight, Info,
 } from 'lucide-react';
 import { contentApi, apiClient } from '@arcanium/api-client';
 import type { Content, ContentListResponse, ContentType } from '@arcanium/types';
@@ -76,20 +76,24 @@ function BookCardSkeleton() {
 // ---------------------------------------------------------------------------
 
 interface BookCardProps {
-  book:    Content;
-  onClick: (book: Content) => void;
+  book:         Content;
+  onClick:      (book: Content) => void;
+  matchGenres?: string[];  // genres from the user's profile that matched this book
 }
 
-function BookCard({ book, onClick }: BookCardProps) {
+function BookCard({ book, onClick, matchGenres }: BookCardProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
   const genres = (book.metadata as { genres?: string[] })?.genres ?? [];
   const genre  = genres[0] ?? '';
   const isCreatorUpload = book.source === 'CREATOR_UPLOAD';
+  const hasWhyThis = matchGenres && matchGenres.length > 0;
 
   return (
     <div
       onClick={() => onClick(book)}
-      className="w-[136px] sm:w-[146px] lg:w-full flex-shrink-0 snap-start group cursor-pointer active:scale-98 transition-transform"
+      className="w-[136px] sm:w-[146px] lg:w-full flex-shrink-0 snap-start group cursor-pointer active:scale-98 transition-transform relative"
     >
+      {/* ── Image container ───────────────────────────────────────────────── */}
       <div className="w-full h-[184px] sm:h-[196px] lg:h-[210px] rounded-2xl overflow-hidden shadow-xs border border-stone-200/80 dark:border-[#352B44] relative bg-stone-100 dark:bg-[#1D1726] group-hover:shadow-md transition-all duration-300">
         {/* Genre badge — top-left */}
         {genre && (
@@ -97,8 +101,8 @@ function BookCard({ book, onClick }: BookCardProps) {
             {genre}
           </span>
         )}
-        {/* Verified Author badge — top-right */}
-        {isCreatorUpload && (
+        {/* Verified Author badge — top-right (only when no Why This) */}
+        {isCreatorUpload && !hasWhyThis && (
           <span className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-xs z-10 backdrop-blur-sm">
             <Sparkles className="w-2.5 h-2.5" />
             Author
@@ -116,6 +120,35 @@ function BookCard({ book, onClick }: BookCardProps) {
           </div>
         )}
       </div>
+
+      {/* ── "Why this?" button — outside overflow-hidden, top-right of card ── */}
+      {hasWhyThis && (
+        <div className="absolute top-2 right-2 z-20">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowTooltip((v) => !v); }}
+            aria-label="Why is this recommended?"
+            className="w-5 h-5 rounded-full bg-[#43335A]/80 dark:bg-[#7A5CA0]/80 backdrop-blur-sm flex items-center justify-center text-white hover:bg-[#43335A] transition-colors"
+          >
+            <Info className="w-3 h-3" />
+          </button>
+          {showTooltip && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="absolute right-0 top-7 w-44 bg-[#2D223B] dark:bg-[#1A1228] text-white text-[10px] rounded-xl p-2.5 shadow-xl border border-[#4A3762] z-50 leading-relaxed"
+            >
+              <p className="font-bold mb-1 text-[#FFDE88]">Why this book?</p>
+              <p className="text-white/70">Matches your taste in:</p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {matchGenres!.map((g) => (
+                  <span key={g} className="bg-[#51406B] text-white px-1.5 py-0.5 rounded-md">{g}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Text info ─────────────────────────────────────────────────────── */}
       <div className="mt-2.5">
         <h4 className="font-serif font-bold text-xs sm:text-sm text-[#2D223B] dark:text-[#F1ECF7] leading-snug line-clamp-1 group-hover:text-[#43335A] dark:group-hover:text-[#FFDE88] transition-colors">
           {book.title}
@@ -136,6 +169,7 @@ function BookCard({ book, onClick }: BookCardProps) {
       </div>
     </div>
   );
+
 }
 
 // ---------------------------------------------------------------------------
@@ -169,23 +203,29 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
   // Admin-curated featured books for the home page
   const { homeFeatured } = useFeaturedSections();
 
-  // ── Live catalogue query ──────────────────────────────────────────────────
-  const catalogueQuery = useQuery<ContentListResponse>({
-    queryKey: ['home', 'catalogue', activeType, activeGenre],
+  // ── Personalized recommendations query ──────────────────────────────────
+  // Uses the new /recommended endpoint which builds a genre+type preference
+  // profile from the user's reading history.  The active genre pill and type
+  // chip are forwarded as *bias* params (they boost matching scores instead of
+  // hard-filtering the pool), so the section stays personalized even when a
+  // genre is selected.
+  const recommendationsQuery = useQuery<ContentListResponse & { isPersonalised?: boolean; topGenres?: string[] }>({
+    queryKey: ['home', 'recommended', activeType, activeGenre],
     queryFn: () =>
-      contentApi.list({
+      contentApi.getRecommendations({
         limit: 8,
-        page:  1,
-        ...(activeType  !== 'All' ? { type:  activeType  as ContentType } : {}),
-        ...(activeGenre !== 'All' ? { genre: activeGenre }               : {}),
+        ...(activeGenre !== 'All' ? { genre: activeGenre } : {}),
+        ...(activeType  !== 'All' ? { type:  activeType  } : {}),
       }).then((res) => {
         if (res.error) throw new Error(res.error.message);
-        return res.data;
+        return res.data as ContentListResponse & { isPersonalised?: boolean; topGenres?: string[] };
       }),
     staleTime: 1000 * 60 * 5,
   });
 
-  const catalogueItems: Content[] = catalogueQuery.data?.items ?? [];
+  const catalogueItems: Content[]  = recommendationsQuery.data?.items ?? [];
+  const isPersonalised: boolean     = recommendationsQuery.data?.isPersonalised ?? false;
+  const topGenres: string[]         = recommendationsQuery.data?.topGenres ?? [];
   // Dynamic greeting based on time of day
   const greeting = (() => {
     const hour = new Date().getHours();
@@ -658,13 +698,29 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
       {/* ── Recommended for You ────────────────────────────────────────────── */}
       <section className="mt-8 w-full">
         <div className="flex items-center justify-between mb-3.5">
-          <h2 className="font-serif font-bold text-lg sm:text-xl text-[#2D223B] dark:text-[#F1ECF7]">
-            {activeType === 'All' && activeGenre === 'All'
-              ? 'Recommended for You'
-              : activeGenre !== 'All'
-                ? activeGenre
-                : (EXPLORE_TYPE_FILTERS.find(f => f.value === activeType)?.label ?? activeType)}
-          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="font-serif font-bold text-lg sm:text-xl text-[#2D223B] dark:text-[#F1ECF7]">
+              {activeType === 'All' && activeGenre === 'All'
+                ? 'Recommended for You'
+                : activeGenre !== 'All'
+                  ? `${activeGenre} — For You`
+                  : `${EXPLORE_TYPE_FILTERS.find(f => f.value === activeType)?.label ?? activeType} — For You`}
+            </h2>
+            {/* Personalization status chip */}
+            {!recommendationsQuery.isLoading && (
+              isPersonalised ? (
+                <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#43335A]/10 dark:bg-[#9B7BBF]/15 text-[#43335A] dark:text-[#C5B3DC] border border-[#43335A]/15 dark:border-[#9B7BBF]/30">
+                  <Sparkles className="w-2.5 h-2.5 fill-current" />
+                  Personalized
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#DE9B35]/10 text-[#DE9B35] border border-[#DE9B35]/20">
+                  <Star className="w-2.5 h-2.5 fill-current" />
+                  Popular
+                </span>
+              )
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-1">
               <button
@@ -682,7 +738,13 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
-            <button className="text-xs font-medium text-[#7A7285] dark:text-[#A599B2] flex items-center gap-0.5 hover:text-[#43335A] dark:hover:text-[#DE9B35] transition-colors">
+            <button
+              onClick={() => {
+                const dest = topGenres[0] ?? (activeGenre !== 'All' ? activeGenre : null);
+                navigate(dest ? `/explore?genre=${encodeURIComponent(dest)}` : '/explore');
+              }}
+              className="text-xs font-medium text-[#7A7285] dark:text-[#A599B2] flex items-center gap-0.5 hover:text-[#43335A] dark:hover:text-[#DE9B35] transition-colors"
+            >
               <span>See all</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -694,17 +756,17 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
           className="flex lg:grid lg:grid-cols-4 gap-3.5 sm:gap-5 overflow-x-auto no-scrollbar pb-3 pt-1 w-full scroll-smooth snap-x snap-mandatory"
         >
           {/* Loading skeletons */}
-          {catalogueQuery.isLoading && Array.from({ length: 4 }).map((_, i) => (
+          {recommendationsQuery.isLoading && Array.from({ length: 4 }).map((_, i) => (
             <BookCardSkeleton key={i} />
           ))}
 
           {/* Error state */}
-          {catalogueQuery.isError && !catalogueQuery.isLoading && (
+          {recommendationsQuery.isError && !recommendationsQuery.isLoading && (
             <div className="col-span-4 flex flex-col items-center justify-center py-10 text-center text-[#80778B] dark:text-[#9F94AC] gap-2">
               <BookOpen className="w-8 h-8 opacity-40" />
-              <p className="text-sm">Could not load catalogue.</p>
+              <p className="text-sm">Could not load recommendations.</p>
               <button
-                onClick={() => catalogueQuery.refetch()}
+                onClick={() => recommendationsQuery.refetch()}
                 className="text-xs font-medium text-[#43335A] dark:text-[#9B7BBF] underline underline-offset-2"
               >
                 Try again
@@ -713,12 +775,24 @@ export default function HomeView({ onOpenLiber, theme, setTheme }: HomeViewProps
           )}
 
           {/* Live data */}
-          {!catalogueQuery.isLoading && catalogueItems.map((book) => (
-            <BookCard key={book.id} book={book} onClick={setSelectedBook} />
-          ))}
+          {!recommendationsQuery.isLoading && catalogueItems.map((book) => {
+            // Compute which of the user's top genres this book matches (for tooltip)
+            const bookGenres = (book.metadata as { genres?: string[] })?.genres ?? [];
+            const matchGenres = isPersonalised
+              ? bookGenres.filter((g) => topGenres.includes(g))
+              : [];
+            return (
+              <BookCard
+                key={book.id}
+                book={book}
+                onClick={setSelectedBook}
+                matchGenres={matchGenres}
+              />
+            );
+          })}
 
           {/* Empty state */}
-          {!catalogueQuery.isLoading && !catalogueQuery.isError && catalogueItems.length === 0 && (
+          {!recommendationsQuery.isLoading && !recommendationsQuery.isError && catalogueItems.length === 0 && (
             <div className="col-span-4 flex items-center justify-center py-10 text-sm text-[#80778B] dark:text-[#9F94AC]">
               No titles found for this category yet.
             </div>

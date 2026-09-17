@@ -217,6 +217,29 @@ export const contentApi = {
       : '';
     return apiClient.get<ContentListResponse>(`/api/v1/content${qs}`);
   },
+
+  /**
+   * GET /api/v1/content/recommended
+   * Personalised recommendations based on the user's reading history.
+   * Falls back to top-rated books for unauthenticated / new users.
+   * @param genre  - optional bias genre (from category pill)
+   * @param type   - optional bias content type (from type chip)
+   * @param limit  - number of results (default 8, max 20)
+   */
+  getRecommendations: (params?: { genre?: string; type?: string; limit?: number }) => {
+    const qs = params
+      ? '?' +
+        new URLSearchParams(
+          Object.entries(params)
+            .filter(([, v]) => v !== undefined && v !== '' && v !== 'All')
+            .map(([k, v]) => [k, String(v)]),
+        ).toString()
+      : '';
+    return apiClient.get<ContentListResponse & { isPersonalised: boolean; topGenres: string[] }>(
+      `/api/v1/content/recommended${qs}`,
+    );
+  },
+
   /** GET /api/v1/content/:slug — single content with chapters */
   get: (slug: string) =>
     apiClient.get<ContentDetail>(`/api/v1/content/${slug}`),
