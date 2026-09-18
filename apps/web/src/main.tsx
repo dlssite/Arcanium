@@ -41,7 +41,12 @@ createRoot(rootElement).render(
 const pwaEvents = new EventTarget();
 (window as Window & { __pwaEvents?: EventTarget }).__pwaEvents = pwaEvents;
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// Register in both PROD and DEV so that:
+//  - beforeinstallprompt fires during local testing
+//  - The update banner can be tested without a full production build
+// The SW itself uses Cache-Control passthrough in dev so it never interferes
+// with Vite's HMR or module serving.
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
@@ -72,8 +77,27 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
           });
         });
 
-        // Poll for updates every 60 s so long-lived tabs also get notified
-        setInterval(() => registration.update(), 60_000);
+        // Poll for updates every 60s, but only when the tab is visible to avoid
+        // wasteful bandwidth usage when multiple tabs are open.
+        const pollForUpdates = () => {
+          if (!document.hidden) {
+            registration.update();
+          }
+        };
+
+        const intervalId = setInterval(pollForUpdates, 60_000);
+
+        // Also check immediately when the tab becomes visible after being hidden
+        const onVisibilityChange = () => {
+          if (!document.hidden) registration.update();
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
+
+        // Cleanup on unload (though in practice the page reload will clear this)
+        return () => {
+          clearInterval(intervalId);
+          document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
       })
       .catch((err) => console.warn('[SW] Registration failed:', err));
   });

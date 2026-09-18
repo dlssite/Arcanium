@@ -19,6 +19,10 @@ const CHAPTER_CACHE = 'arcanium-chapters-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/offline.html',
+  '/explore',
+  '/library',
+  '/liber',
 ];
 
 // ---------------------------------------------------------------------------
@@ -74,6 +78,9 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET and chrome-extension requests
   if (request.method !== 'GET') return;
   if (!url.protocol.startsWith('http')) return;
+
+  // Skip Vite dev-server internals so HMR is never intercepted
+  if (url.pathname.startsWith('/@') || url.pathname.startsWith('/__vite')) return;
 
   // Chapter content API — CacheFirst for text, no-cache for image types
   // Image chapters (manga/comic/webtoon) are served with Cache-Control: no-store
@@ -137,6 +144,11 @@ async function cacheFirst(cacheName, request) {
     if (response.ok) cache.put(request, response.clone());
     return response;
   } catch {
+    // If this was a navigation request and we're offline, return the offline page
+    if (request.mode === 'navigate') {
+      const offlinePage = await cache.match('/offline.html');
+      if (offlinePage) return offlinePage;
+    }
     return new Response('Offline', { status: 503 });
   }
 }
