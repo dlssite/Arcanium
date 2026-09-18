@@ -10,6 +10,9 @@ import MobileHeader from './components/layout/MobileHeader.jsx';
 import LiberCompanionDock from './components/layout/LiberCompanionDock.jsx';
 import { features } from './config/features.ts';
 import { OfflineBanner } from './components/shared/OfflineBanner.tsx';
+import { PWAInstallCard } from './components/shared/PWAInstallCard.tsx';
+import { PWAUpdateBanner } from './components/shared/PWAUpdateBanner.tsx';
+import { usePWA } from './hooks/usePWA.ts';
 
 const CollectionPage = lazy(() => import('./features/collections/CollectionPage.tsx'));
 
@@ -52,6 +55,8 @@ export default function App() {
   const navigate = useNavigate();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const pwa = usePWA();
 
   // Theme
   const [theme, setTheme] = useState(() => {
@@ -115,6 +120,8 @@ export default function App() {
     <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#120E18] text-[#2D223B] dark:text-[#F1ECF7] flex flex-col font-sans antialiased selection:bg-[#43335A] dark:selection:bg-[#725499] selection:text-white transition-colors duration-200">
 
       <OfflineBanner />
+      <PWAInstallCard pwa={pwa} />
+      <PWAUpdateBanner pwa={pwa} />
 
       {/* ------------------------------------------------------------------ */}
       {/* DESKTOP LAYOUT (>= 1024px)                                          */}

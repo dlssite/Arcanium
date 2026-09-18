@@ -30,12 +30,51 @@ createRoot(rootElement).render(
 // ---------------------------------------------------------------------------
 // Service Worker registration (Phase 4 — offline-first reader)
 // Constitution §8.2: cache static assets + API responses via SW
+//
+// We also set up two globals consumed by usePWA.ts:
+//   window.__pwaEvents     — EventTarget for dispatching 'updateavailable'
+//   window.__pwaWaitingSW  — reference to the waiting SW so usePWA can post
+//                            the SKIP_WAITING message without re-querying
 // ---------------------------------------------------------------------------
+
+// Shared event bus for PWA lifecycle events (install available, update ready)
+const pwaEvents = new EventTarget();
+(window as Window & { __pwaEvents?: EventTarget }).__pwaEvents = pwaEvents;
+
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
-      .then(() => console.info('[SW] Registered'))
+      .then((registration) => {
+        console.info('[SW] Registered');
+
+        // Helper: stash a waiting SW and fire the updateavailable event so the
+        // PWAUpdateBanner knows to show itself.
+        const notifyWaiting = (sw: ServiceWorker) => {
+          (window as Window & { __pwaWaitingSW?: ServiceWorker }).__pwaWaitingSW = sw;
+          pwaEvents.dispatchEvent(new Event('updateavailable'));
+        };
+
+        // Already waiting on first load (e.g. hard-refresh over a previous version)
+        if (registration.waiting) {
+          notifyWaiting(registration.waiting);
+        }
+
+        // A new SW finishes installing while the page is open
+        registration.addEventListener('updatefound', () => {
+          const installing = registration.installing;
+          if (!installing) return;
+          installing.addEventListener('statechange', () => {
+            if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+              // There is already an active SW controlling the page — this is an update
+              notifyWaiting(installing);
+            }
+          });
+        });
+
+        // Poll for updates every 60 s so long-lived tabs also get notified
+        setInterval(() => registration.update(), 60_000);
+      })
       .catch((err) => console.warn('[SW] Registration failed:', err));
   });
 }

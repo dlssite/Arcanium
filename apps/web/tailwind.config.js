@@ -47,7 +47,21 @@ export default {
       },
       spacing: {
         'safe-bottom': 'env(safe-area-inset-bottom, 16px)',
-      }
+      },
+      keyframes: {
+        'slide-up': {
+          '0%':   { opacity: '0', transform: 'translateY(16px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          '0%':   { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+      },
+      animation: {
+        'slide-up': 'slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'fade-in':  'fade-in 0.2s ease-out forwards',
+      },
     },
   },
   plugins: [],

@@ -22,14 +22,27 @@ const STATIC_ASSETS = [
 ];
 
 // ---------------------------------------------------------------------------
+// Message — allow the app to trigger activation of this waiting SW.
+// usePWA.ts posts { type: 'SKIP_WAITING' } when the user clicks "Update now".
+// ---------------------------------------------------------------------------
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Install — pre-cache static assets
 // ---------------------------------------------------------------------------
 
 self.addEventListener('install', (event) => {
+  // Do NOT call skipWaiting() here anymore — we wait for the user to confirm
+  // the update via the PWAUpdateBanner. skipWaiting() is now only called in
+  // response to the SKIP_WAITING message above.
   event.waitUntil(
     caches.open(STATIC_CACHE)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting()),
+      .then((cache) => cache.addAll(STATIC_ASSETS)),
   );
 });
 
