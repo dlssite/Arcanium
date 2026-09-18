@@ -14,7 +14,7 @@ export const reviewsRouter: Router = Router();
 // Mounted at contentRouter with path prefix
 // ---------------------------------------------------------------------------
 
-export const contentReviewsRouter = Router({ mergeParams: true });
+export const contentReviewsRouter: Router = Router({ mergeParams: true });
 
 // GET — list reviews for a book (optional auth for echo state)
 contentReviewsRouter.get('/', getReviewsForBook);

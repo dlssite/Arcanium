@@ -1,0 +1,163 @@
+{
+  "description": "Test URLs for all new providers added in Phase 1",
+  "providers": [
+    {
+      "name": "ComicKProvider",
+      "domain": "comick.io",
+      "testUrls": [
+        {
+          "url": "https://comick.io/comic/solo-leveling",
+          "title": "Solo Leveling",
+          "type": "MANHWA",
+          "notes": "Popular Korean manhwa, should have 100+ chapters"
+        },
+        {
+          "url": "https://comick.io/comic/one-piece",
+          "title": "One Piece",
+          "type": "MANGA",
+          "notes": "Long-running manga, 1000+ chapters"
+        },
+        {
+          "url": "https://comick.io/comic/omniscient-readers-viewpoint",
+          "title": "Omniscient Reader's Viewpoint",
+          "type": "MANHWA",
+          "notes": "Popular Korean manhwa"
+        }
+      ]
+    },
+    {
+      "name": "AsuraScansProvider",
+      "domain": "asuracomic.net",
+      "testUrls": [
+        {
+          "url": "https://asuracomic.net/series/the-beginning-after-the-end",
+          "title": "The Beginning After the End",
+          "type": "MANHWA",
+          "notes": "Very popular manhwa on AsuraScans"
+        },
+        {
+          "url": "https://asuracomic.net/series/nano-machine",
+          "title": "Nano Machine",
+          "type": "MANHWA",
+          "notes": "Action manhwa with good image quality"
+        }
+      ]
+    },
+    {
+      "name": "AO3Provider",
+      "domain": "archiveofourown.org",
+      "testUrls": [
+        {
+          "url": "https://archiveofourown.org/works/11478249",
+          "title": "Test Work (Multi-chapter)",
+          "type": "WEB_NOVEL",
+          "notes": "Multi-chapter fan fiction, tests chapter extraction"
+        },
+        {
+          "url": "https://archiveofourown.org/works/1000",
+          "title": "Test Work (Single chapter)",
+          "type": "WEB_NOVEL",
+          "notes": "Single-chapter work"
+        }
+      ]
+    },
+    {
+      "name": "WebtoonProvider",
+      "domain": "webtoons.com",
+      "testUrls": [
+        {
+          "url": "https://www.webtoons.com/en/fantasy/tower-of-god/list?title_no=95",
+          "title": "Tower of God",
+          "type": "WEBTOON",
+          "notes": "Long-running official webtoon, 500+ episodes"
+        },
+        {
+          "url": "https://www.webtoons.com/en/romance/lore-olympus/list?title_no=1320",
+          "title": "Lore Olympus",
+          "type": "WEBTOON",
+          "notes": "Popular romance webtoon"
+        }
+      ]
+    },
+    {
+      "name": "NovelUpdatesProvider",
+      "domain": "novelupdates.com",
+      "testUrls": [
+        {
+          "url": "https://www.novelupdates.com/series/a-returners-magic-should-be-special",
+          "title": "A Returner's Magic Should Be Special",
+          "type": "LIGHT_NOVEL",
+          "notes": "Popular Korean light novel, links to translator sites"
+        },
+        {
+          "url": "https://www.novelupdates.com/series/solo-leveling",
+          "title": "Solo Leveling",
+          "type": "LIGHT_NOVEL",
+          "notes": "Very popular, completed series"
+        }
+      ]
+    },
+    {
+      "name": "GutenbergProvider",
+      "domain": "gutenberg.org",
+      "testUrls": [
+        {
+          "url": "https://www.gutenberg.org/ebooks/1342",
+          "title": "Pride and Prejudice",
+          "type": "EBOOK",
+          "notes": "Classic Jane Austen novel, public domain"
+        },
+        {
+          "url": "https://www.gutenberg.org/ebooks/11",
+          "title": "Alice's Adventures in Wonderland",
+          "type": "EBOOK",
+          "notes": "Lewis Carroll classic"
+        },
+        {
+          "url": "https://www.gutenberg.org/ebooks/2701",
+          "title": "Moby Dick",
+          "type": "EBOOK",
+          "notes": "Herman Melville epic"
+        }
+      ]
+    },
+    {
+      "name": "TapasProvider",
+      "domain": "tapas.io",
+      "testUrls": [
+        {
+          "url": "https://tapas.io/series/tbate-comic",
+          "title": "The Beginning After The End",
+          "type": "COMIC",
+          "notes": "Popular comic adaptation"
+        },
+        {
+          "url": "https://tapas.io/series/unordinary",
+          "title": "unORDINARY",
+          "type": "COMIC",
+          "notes": "Popular original webcomic"
+        }
+      ]
+    }
+  ],
+  "testingInstructions": {
+    "manual": [
+      "1. Run: pnpm --filter @arcanium/backend exec -- node seed-new-providers.mjs",
+      "2. Start backend: pnpm --filter @arcanium/backend dev",
+      "3. Use the Content Ingestion API to test each URL",
+      "4. Verify metadata extraction (title, author, cover, synopsis)",
+      "5. Verify chapter list extraction (count, titles, URLs)",
+      "6. Test chapter body extraction (images for comics, text for novels)"
+    ],
+    "curl": [
+      "# Test ComicK",
+      "curl -X POST http://localhost:3000/api/ingest -H 'Content-Type: application/json' -d '{\"url\":\"https://comick.io/comic/solo-leveling\"}'",
+      "",
+      "# Test AO3",
+      "curl -X POST http://localhost:3000/api/ingest -H 'Content-Type: application/json' -d '{\"url\":\"https://archiveofourown.org/works/11478249\"}'",
+      "",
+      "# Test Gutenberg",
+      "curl -X POST http://localhost:3000/api/ingest -H 'Content-Type: application/json' -d '{\"url\":\"https://www.gutenberg.org/ebooks/1342\"}'"
+    ]
+  }
+}
