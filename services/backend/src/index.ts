@@ -37,18 +37,26 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Log each request origin for debugging
-      console.log(`[CORS] Request from origin: ${origin || 'no-origin'}`);
-      console.log(`[CORS] Allowed origins: ${env.CORS_ORIGINS.join(', ')}`);
+      console.log(`[CORS] Request from origin: "${origin || 'no-origin'}"`);
+      console.log(`[CORS] Allowed origins: [${env.CORS_ORIGINS.map(o => `"${o}"`).join(', ')}]`);
       
       // Allow requests with no origin (like mobile apps, Postman, curl)
       if (!origin) {
         return callback(null, true);
       }
       
-      if (env.CORS_ORIGINS.includes(origin)) {
+      // Trim and normalize the incoming origin
+      const normalizedOrigin = origin.trim().toLowerCase();
+      const isAllowed = env.CORS_ORIGINS.some(allowed => 
+        allowed.trim().toLowerCase() === normalizedOrigin
+      );
+      
+      if (isAllowed) {
+        console.log(`[CORS] ✓ Allowed origin: "${origin}"`);
         callback(null, true);
       } else {
-        console.warn(`[CORS] Blocked origin: ${origin}`);
+        console.warn(`[CORS] ✗ Blocked origin: "${origin}"`);
+        console.warn(`[CORS] Comparison failed for all allowed origins`);
         callback(new Error('Not allowed by CORS'));
       }
     },

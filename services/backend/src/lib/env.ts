@@ -31,7 +31,10 @@ export const env = {
     'http://localhost:4000/api/v1/auth/google/callback',
   ),
 
-  CORS_ORIGINS: optional('CORS_ORIGINS', 'http://localhost:3000').split(','),
+  CORS_ORIGINS: optional('CORS_ORIGINS', 'http://localhost:3000')
+    .split(',')
+    .map(o => o.trim())
+    .filter(o => o.length > 0),
 
   FEATURE_AI: optional('FEATURE_FLAG_AI_HOUSEKEEPER', 'false') === 'true',
 
