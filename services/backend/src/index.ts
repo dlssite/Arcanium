@@ -31,9 +31,27 @@ const app: Express = express();
 
 // ── Security ────────────────────────────────────────────────────────────────
 app.use(helmet());
+
+// Enhanced CORS configuration with logging
 app.use(
   cors({
-    origin: env.CORS_ORIGINS,
+    origin: (origin, callback) => {
+      // Log each request origin for debugging
+      console.log(`[CORS] Request from origin: ${origin || 'no-origin'}`);
+      console.log(`[CORS] Allowed origins: ${env.CORS_ORIGINS.join(', ')}`);
+      
+      // Allow requests with no origin (like mobile apps, Postman, curl)
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      if (env.CORS_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`[CORS] Blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true, // required for the httpOnly refresh cookie exchange
   }),
 );
